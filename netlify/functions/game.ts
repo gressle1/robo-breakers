@@ -8,6 +8,10 @@ import {
   submitAction,
   rematch,
   publicRoom,
+  touchPlayer,
+  leaveRoom,
+  cleanupInactivePlayers,
+  returnToLobby,
 } from '../../src/game-engine.mjs';
 
 type Room = ReturnType<typeof createRoomState>;
@@ -88,12 +92,25 @@ export default async (req: Request, _context: Context) => {
 
     if (op === 'join') {
       const id = playerId();
-      const room = await mutateRoom(body.code, r => { addPlayer(r, id, body.name); });
+      const room = await mutateRoom(body.code, r => {
+        cleanupInactivePlayers(r);
+        addPlayer(r, id, body.name);
+      });
       return json({ playerId: id, room: publicRoom(room) });
+    }
+
+    if (op === 'heartbeat') {
+      const room = await mutateRoom(body.code, r => {
+        touchPlayer(r, body.playerId);
+        cleanupInactivePlayers(r);
+      });
+      return json({ room: publicRoom(room) });
     }
 
     if (op === 'ready') {
       const room = await mutateRoom(body.code, r => {
+        touchPlayer(r, body.playerId);
+        cleanupInactivePlayers(r);
         const p = r.players.find((x: any) => x.id === body.playerId);
         if (!p) throw new Error('Player not found.');
         p.ready = Boolean(body.ready);
@@ -102,17 +119,44 @@ export default async (req: Request, _context: Context) => {
     }
 
     if (op === 'start') {
-      const room = await mutateRoom(body.code, r => { startGame(r, body.playerId); });
+      const room = await mutateRoom(body.code, r => {
+        touchPlayer(r, body.playerId);
+        cleanupInactivePlayers(r);
+        startGame(r, body.playerId);
+      });
       return json({ room: publicRoom(room) });
     }
 
     if (op === 'action') {
-      const room = await mutateRoom(body.code, r => { submitAction(r, body.playerId, body.action); });
+      const room = await mutateRoom(body.code, r => {
+        touchPlayer(r, body.playerId);
+        cleanupInactivePlayers(r);
+        submitAction(r, body.playerId, body.action);
+      });
+      return json({ room: publicRoom(room) });
+    }
+
+    if (op === 'leave') {
+      const room = await mutateRoom(body.code, r => {
+        leaveRoom(r, body.playerId, 'left the arena');
+      });
+      return json({ room: publicRoom(room) });
+    }
+
+    if (op === 'returnLobby') {
+      const room = await mutateRoom(body.code, r => {
+        touchPlayer(r, body.playerId);
+        returnToLobby(r, body.playerId);
+      });
       return json({ room: publicRoom(room) });
     }
 
     if (op === 'rematch') {
-      const room = await mutateRoom(body.code, r => { rematch(r, body.playerId); });
+      const room = await mutateRoom(body.code, r => {
+        touchPlayer(r, body.playerId);
+        cleanupInactivePlayers(r);
+        rematch(r, body.playerId);
+      });
       return json({ room: publicRoom(room) });
     }
 

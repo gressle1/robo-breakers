@@ -5,21 +5,28 @@ Robo Breakers is a browser-first 2–8 player multiplayer strategy arena. Every 
 ## Contest target
 OpenAI multiplayer game challenge — submission deadline: **October 31, 2026**.
 
-## v0.3 — Netlify multiplayer milestone
-- Static frontend builds to `dist/` for Netlify hosting.
-- Standard Netlify Function at `netlify/functions/game.ts`.
-- Frontend calls `/.netlify/functions/game` directly.
-- Netlify Blobs stores shared room state so players on different devices/networks can access the same room.
-- Strong consistency is enabled for room reads.
-- Conditional writes (`onlyIfNew` and `onlyIfMatch`) prevent accidental room overwrites and reduce race-condition bugs.
-- 2–8 player lobby, ready/start flow, simultaneous actions, winner detection, and rematch remain intact.
+## v0.4.1 — Combat Feedback & Leave Flow
+This branch builds on the proven v0.4 multiplayer preview without changing the core combat rules.
+
+### New in v0.4.1
+- Larger desktop arena and stronger use of screen space.
+- More mechanical, armored robot silhouettes.
+- Direction/facing indicators.
+- Pre-lock targeting previews for Move, Blast, Hack, Shield, and Overcharge.
+- Visible combat feedback for blasts, impacts, shields, hacks, charging, and movement.
+- Richer EXECUTE reveal with per-action outcomes.
+- **Leave Match** button during active play with confirmation.
+- Automatic host transfer when the host leaves.
+- Heartbeat-based disconnect detection with a 30-second grace period.
+- Two-player matches become **Interrupted** instead of awarding a fake combat win when an opponent leaves.
+- Remaining host can return the room to the lobby after an interrupted match.
 
 ## Architecture
 
 ```text
 Browser clients
       |
-      | HTTPS polling + actions
+      | HTTPS polling + heartbeat + actions
       v
 /.netlify/functions/game
       |
