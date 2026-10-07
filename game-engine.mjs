@@ -44,6 +44,7 @@ export function createRoomState(code, hostId, hostName) {
     }],
     log: ['Room created.'],
     winnerIds: [],
+    lastTurn: null,
     createdAt: Date.now(),
     updatedAt: Date.now(),
   };
@@ -82,6 +83,7 @@ export function startGame(room, requesterId) {
   room.boardSize = boardSizeFor(room.players.length);
   resetPlayersForMatch(room);
   assignSpawns(room);
+  room.lastTurn = null;
   room.log = ['ROUND 1 — choose your command.'];
   room.updatedAt = Date.now();
   return room;
@@ -142,6 +144,8 @@ function adjacentPlayer(room, player, dir) {
 export function resolveRound(room) {
   const events = [];
   const alive = room.players.filter(p => p.alive);
+  const resolvedRound = room.round;
+  const revealedActions = alive.map(p => ({ id: p.id, name: p.name, action: structuredClone(p.action) }));
   for (const p of alive) { p.shielded = false; p.hacked = false; }
 
   // 1. Hacks resolve first.
@@ -232,6 +236,7 @@ export function resolveRound(room) {
     for (const p of room.players) p.action = null;
     events.push(`ROUND ${room.round} — choose your command.`);
   }
+  room.lastTurn = { round: resolvedRound, actions: revealedActions, events: [...events], resolvedAt: Date.now() };
   room.log = [...room.log, ...events].slice(-30);
   room.updatedAt = Date.now();
   return room;
@@ -252,6 +257,7 @@ export function rematch(room, requesterId) {
   room.boardSize = boardSizeFor(room.players.length);
   resetPlayersForMatch(room);
   assignSpawns(room);
+  room.lastTurn = null;
   room.log = ['REMATCH — ROUND 1.'];
   room.updatedAt = Date.now();
   return room;

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createRoomState, addPlayer, startGame, submitAction } from '../game-engine.mjs';
+import { createRoomState, addPlayer, startGame, submitAction } from './game-engine.mjs';
 
 function room2(){const r=createRoomState('TEST','a','Joe');addPlayer(r,'b','Sam');r.players.find(p=>p.id==='b').ready=true;startGame(r,'a');return r}
 
