@@ -62,9 +62,12 @@ export function addPlayer(room, id, name) {
   if (room.phase !== 'lobby') throw new Error('Game already started.');
   if (room.players.length >= 8) throw new Error('Room is full.');
   if (room.players.some(p => p.id === id)) return room;
-  room.players.push(newPlayer(id, name));
+  const cleanName = sanitizeName(name);
+  const taken = room.players.some(p => p.name.toLocaleLowerCase() === cleanName.toLocaleLowerCase());
+  if (taken) throw new Error('Pilot name already in use. Choose another callsign.');
+  room.players.push(newPlayer(id, cleanName));
   room.updatedAt = Date.now();
-  room.log.push(`${sanitizeName(name)} joined the room.`);
+  room.log.push(`${cleanName} joined the room.`);
   return room;
 }
 

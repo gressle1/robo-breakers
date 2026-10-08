@@ -21,3 +21,16 @@ test('host status transfers when host leaves',()=>{const r=room2();leaveRoom(r,'
 test('two-player match becomes interrupted when opponent leaves',()=>{const r=room2();leaveRoom(r,'b');assert.equal(r.phase,'interrupted');assert.equal(r.winnerIds.length,0);assert.match(r.interruptReason,/Sam left the arena/)});
 test('interrupted host can return remaining room to lobby',()=>{const r=room2();leaveRoom(r,'b');returnToLobby(r,'a');assert.equal(r.phase,'lobby');assert.equal(r.round,0);assert.equal(r.players[0].hp,3);assert.equal(r.players[0].ready,false)});
 test('inactive player cleanup removes stale player and transfers host',()=>{const r=createRoomState('TEST','a','Joe');addPlayer(r,'b','Sam');r.players[0].lastSeen=0;r.players[1].lastSeen=20_000;cleanupInactivePlayers(r,40_000,30_000);assert.equal(r.players.length,1);assert.equal(r.players[0].id,'b');assert.equal(r.hostId,'b')});
+
+test('duplicate pilot names are blocked case-insensitively',()=>{
+  const r=createRoomState('TEST','a','Joe');
+  assert.throws(()=>addPlayer(r,'b','joe'),/Pilot name already in use/i);
+  assert.throws(()=>addPlayer(r,'c','JOE'),/Pilot name already in use/i);
+  assert.equal(r.players.length,1);
+});
+
+test('duplicate pilot names are checked after sanitizing and trimming',()=>{
+  const r=createRoomState('TEST','a','Joe');
+  assert.throws(()=>addPlayer(r,'b','  Joe  '),/Pilot name already in use/i);
+  assert.equal(r.players.length,1);
+});
