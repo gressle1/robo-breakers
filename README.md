@@ -57,3 +57,7 @@ The production build output is `dist/`.
 - **Overcharge**: gain +1 energy.
 - Every bot starts with 3 HP and 1 energy.
 - Last surviving robot wins.
+
+
+## v0.4.3 hotfix
+- Prevents background polling from overwriting the intentional **You left the arena.** message after Leave Match.
