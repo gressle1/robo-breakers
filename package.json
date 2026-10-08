@@ -1,7 +1,7 @@
 {
   "name": "robo-breakers",
   "private": true,
-  "version": "0.3.0",
+  "version": "0.4.3",
   "type": "module",
   "scripts": {
     "build": "node build.mjs",
