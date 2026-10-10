@@ -1,11 +1,12 @@
 {
   "name": "robo-breakers",
   "private": true,
-  "version": "0.4.3",
+  "version": "0.5.0",
   "type": "module",
   "scripts": {
     "build": "node build.mjs",
-    "test": "node --test"
+    "test": "node --test",
+    "test:e2e": "node e2e.mjs"
   },
   "dependencies": {
     "@netlify/blobs": "^10.0.10",

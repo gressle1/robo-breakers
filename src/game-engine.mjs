@@ -170,6 +170,7 @@ export function submitAction(room, playerId, action) {
   if (room.phase !== 'playing') throw new Error('The game is not accepting actions.');
   const p = room.players.find(x => x.id === playerId);
   if (!p || !p.alive) throw new Error('Player cannot act.');
+  if (p.action) throw new Error('Command already locked in. Wait for the next round.');
   validateAction(action);
   p.action = action;
   p.lastSeen = Date.now();

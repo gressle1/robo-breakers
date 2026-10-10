@@ -35,6 +35,11 @@ try {
   state = await req('/api/action',{code,playerId:host.playerId,action:{type:'overcharge'}});
   assert.equal(state.room.players.find(p=>p.id===host.playerId).lockedIn,true);
   assert.equal('action' in state.room.players.find(p=>p.id===host.playerId), false);
+  await assert.rejects(
+    () => req('/api/action',{code,playerId:host.playerId,action:{type:'blast',dir:'down'}}),
+    /already locked in/i,
+    'a player must not be able to replace a secret command after locking it in',
+  );
   state = await req('/api/action',{code,playerId:guest.playerId,action:{type:'overcharge'}});
   assert.equal(state.room.round,2);
   assert.equal(state.room.players.every(p=>!p.lockedIn),true);

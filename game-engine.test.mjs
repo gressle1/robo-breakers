@@ -34,3 +34,12 @@ test('duplicate pilot names are checked after sanitizing and trimming',()=>{
   assert.throws(()=>addPlayer(r,'b','  Joe  '),/Pilot name already in use/i);
   assert.equal(r.players.length,1);
 });
+
+
+test('a locked command cannot be replaced before the other pilots submit',()=>{
+  const r=room2();
+  submitAction(r,'a',{type:'overcharge'});
+  assert.throws(()=>submitAction(r,'a',{type:'blast',dir:'down'}),/already locked in/i);
+  assert.equal(r.players[0].action.type,'overcharge');
+  assert.equal(r.lastTurn,null);
+});

@@ -5,6 +5,19 @@ Robo Breakers is a browser-first 2–8 player multiplayer strategy arena. Every 
 ## Contest target
 OpenAI multiplayer game challenge — submission deadline: **October 31, 2026**.
 
+## v0.5.0 — Combat Polish Pass
+
+This development build improves combat presentation and protects simultaneous command locking while preserving the existing core combat rules.
+
+### New in v0.5.0
+- Four original robot frame silhouettes, assigned consistently by roster order.
+- Clearer damaged, critical, shielded, and hacked robot states.
+- Stronger hit, movement, shield, hack, and blast effects, with reduced-motion support.
+- Command cards explain each action.
+- Keyboard shortcuts during combat: 1–5 select commands, arrows/WASD aim directional commands, and Enter locks in.
+- A locked command cannot be replaced while waiting for other pilots, protecting simultaneous secret turns.
+- Improved arena activity indicator, keyboard focus support, and mobile styling.
+
 ## v0.4.1 — Combat Feedback & Leave Flow
 This branch builds on the proven v0.4 multiplayer preview without changing the core combat rules.
 
@@ -61,3 +74,8 @@ The production build output is `dist/`.
 
 ## v0.4.3 hotfix
 - Prevents background polling from overwriting the intentional **You left the arena.** message after Leave Match.
+
+
+## Development notes
+- v0.5.0 is on the `v0.5-combat` development branch; production `main` is unchanged.
+- A live Netlify/Blobs multi-device test is still required before merging or deploying.
