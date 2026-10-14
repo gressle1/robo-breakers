@@ -1,4 +1,18 @@
-export const FRAMES = Object.freeze(['juggernaut', 'phoenix', 'astra', 'aurora']);
+export const FRAME_STATS = Object.freeze({
+  juggernaut: Object.freeze({ hp: 150, armor: 20, blast: 18, melee: 24, dodge: 25, move: 1, overdrive: 1 }),
+  phoenix: Object.freeze({ hp: 110, armor: 5, blast: 28, melee: 30, dodge: 40, move: 1, overdrive: 1 }),
+  astra: Object.freeze({ hp: 100, armor: 0, blast: 18, melee: 12, dodge: 60, move: 1, overdrive: 3 }),
+  aurora: Object.freeze({ hp: 120, armor: 10, blast: 20, melee: 18, dodge: 45, move: 1, overdrive: 2 }),
+});
+export const FRAMES = Object.freeze(Object.keys(FRAME_STATS));
+// Combat currently implements base HP, blaster damage, and passive armor.
+// Melee, dodge reduction, and Overdrive movement require separate approved commands.
+export function blastDamage(attacker, defender) {
+  const output = FRAME_STATS[attacker.frame]?.blast;
+  const armor = FRAME_STATS[defender.frame]?.armor;
+  if (output === undefined || armor === undefined) throw new Error('Both combatants need valid frames.');
+  return Math.max(0, Math.round(output * (1 - armor / 100)));
+}
 
 export const ACTIONS = ['move', 'blast', 'shield', 'hack', 'overcharge'];
 export const DIRS = {
@@ -161,7 +175,7 @@ export function startGame(room, requesterId) {
 
 function resetPlayersForMatch(room) {
   for (const p of room.players) {
-    p.hp = 3;
+    p.hp = FRAME_STATS[p.frame]?.hp ?? 0;
     p.energy = 1;
     p.alive = true;
     p.action = null;
@@ -313,10 +327,11 @@ export function resolveRound(room) {
       visuals.push({ type:'blast', actorId:p.id, from, dir:p.action.dir, path, targetId:target.id, blocked:true, hit:true });
       events.push(`${target.name} blocked ${p.name}'s blast.`);
     } else {
-      target.hp -= 1;
-      p.damageDealt += 1;
+      const damage = blastDamage(p, target);
+      target.hp = Math.max(0, target.hp - damage);
+      p.damageDealt += damage;
       visuals.push({ type:'blast', actorId:p.id, from, dir:p.action.dir, path, targetId:target.id, blocked:false, hit:true, eliminated:target.hp <= 0 });
-      events.push(`${p.name} blasted ${target.name} (-1 HP).`);
+      events.push(`${p.name} blasted ${target.name} (-${damage} HP).`);
       if (target.hp <= 0 && target.alive) {
         target.alive = false;
         p.eliminations += 1;
@@ -381,7 +396,7 @@ export function returnToLobby(room, requesterId) {
   for (const p of room.players) {
     p.ready = false;
     p.action = null;
-    p.hp = 3;
+    p.hp = FRAME_STATS[p.frame]?.hp ?? 0;
     p.energy = 1;
     p.alive = true;
     p.shielded = false;
