@@ -3,6 +3,7 @@ import type { Context } from '@netlify/functions';
 import crypto from 'node:crypto';
 import {
   createRoomState,
+  selectFrame,
   addPlayer,
   startGame,
   submitAction,
@@ -103,6 +104,15 @@ export default async (req: Request, _context: Context) => {
       const room = await mutateRoom(body.code, r => {
         touchPlayer(r, body.playerId);
         cleanupInactivePlayers(r);
+      });
+      return json({ room: publicRoom(room) });
+    }
+
+    if (op === 'selectFrame') {
+      const room = await mutateRoom(body.code, r => {
+        touchPlayer(r, body.playerId);
+        cleanupInactivePlayers(r);
+        selectFrame(r, body.playerId, body.frame);
       });
       return json({ room: publicRoom(room) });
     }
