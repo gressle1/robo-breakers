@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   createRoomState,
+  validatePilotName,
   addPlayer,
   startGame,
   submitAction,
@@ -33,4 +34,13 @@ test('duplicate pilot names are checked after sanitizing and trimming',()=>{
   const r=createRoomState('TEST','a','Joe');
   assert.throws(()=>addPlayer(r,'b','  Joe  '),/Pilot name already in use/i);
   assert.equal(r.players.length,1);
+});
+
+
+test('pilot callsigns enforce the registration rules',()=>{
+  assert.equal(validatePilotName('  Robo-7  '),'Robo-7');
+  assert.throws(()=>validatePilotName('ab'),/3–16 characters/i);
+  assert.throws(()=>validatePilotName('this-callsign-is-too-long'),/3–16 characters/i);
+  assert.throws(()=>validatePilotName('Bad!Name'),/3–16 characters/i);
+  assert.throws(()=>validatePilotName(undefined),/3–16 characters/i);
 });
