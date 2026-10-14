@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
-import { createRoomState, addPlayer, startGame, submitAction, rematch, publicRoom } from './game-engine.mjs';
+import { createRoomState, addPlayer, selectFrame, startGame, submitAction, rematch, publicRoom } from './game-engine.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const publicDir = path.join(__dirname, 'public');
@@ -45,6 +45,11 @@ const server = http.createServer(async (req,res) => {
     }
     if (url.pathname === '/api/state' && req.method === 'GET') {
       return json(res,200,{room:publicRoom(getRoom(url.searchParams.get('code')))});
+    }
+    if (url.pathname === '/api/selectFrame' && req.method === 'POST') {
+      const b = await body(req); const room = getRoom(b.code);
+      selectFrame(room, b.playerId, b.frame);
+      return json(res,200,{room:publicRoom(room)});
     }
     if (url.pathname === '/api/ready' && req.method === 'POST') {
       const b = await body(req); const room = getRoom(b.code); const p = room.players.find(x=>x.id===b.playerId);

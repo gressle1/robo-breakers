@@ -40,3 +40,101 @@ test('frame selection is persisted and supports duplicate picks',()=>{const r=cr
 test('match cannot start without every pilot selecting',()=>{const r=createRoomState('TEST','a','Joe');addPlayer(r,'b','Sam');r.players[1].ready=true;assert.throws(()=>startGame(r,'a'),/select a frame/i)});
 test('changing frame unready player and is prohibited during play',()=>{const r=createRoomState('TEST','a','Joe');addPlayer(r,'b','Sam');selectFrame(r,'a','juggernaut');selectFrame(r,'b','astra');r.players[1].ready=true;selectFrame(r,'b','phoenix');assert.equal(r.players[1].ready,false);r.players[1].ready=true;startGame(r,'a');assert.throws(()=>selectFrame(r,'b','aurora'),/only available in the lobby/i)});
 test('unknown frame selection rejected',()=>{const r=createRoomState('TEST','a','Joe');assert.throws(()=>selectFrame(r,'a','robot'),/Invalid frame/i)});
+
+
+// Stage 4A: Directional Dodge proposal using the approved one-energy cost
+// and frame-specific dodge reduction. Movement timing and blocked-dodge
+// behavior remain subject to live acceptance before merge.
+test('dodge consumes 1 energy and relocates one cell', () => {
+  const r=room2();
+  Object.assign(r.players[0], {x:1,y:1,energy:1});
+  submitAction(r,'a',{type:'dodge',dir:'right'});
+  assert.equal(r.players[0].energy,1, 'resource unchanged until simultaneous resolution');
+  submitAction(r,'b',{type:'overcharge'});
+  assert.equal(r.players[0].energy,0);
+  assert.equal(r.players[0].x,2);
+  assert.equal(r.players[0].y,1);
+  assert.equal(r.players[0].dodging,true);
+  assert.equal(r.lastTurn.visuals.find(v=>v.type==='dodge').blocked,false);
+});
+
+test('invalid direction and insufficient energy cannot lock a dodge', () => {
+  const r=room2();
+  assert.throws(()=>submitAction(r,'a',{type:'dodge',dir:'diagonal'}),/Direction required/);
+  assert.equal(r.players[0].action,null);
+  r.players[0].energy=0;
+  assert.throws(()=>submitAction(r,'a',{type:'dodge',dir:'up'}),/requires 1 energy/);
+  assert.equal(r.players[0].action,null);
+});
+
+test('dodge cannot exit arena, and blocked attempt still spends energy', () => {
+  const r=room2();
+  Object.assign(r.players[0], {x:0,y:0,energy:1});
+  submitAction(r,'a',{type:'dodge',dir:'up'});
+  submitAction(r,'b',{type:'overcharge'});
+  assert.deepEqual([r.players[0].x,r.players[0].y],[0,0]);
+  assert.equal(r.players[0].energy,0);
+  assert.equal(r.players[0].dodging,false);
+  assert.equal(r.lastTurn.visuals.find(v=>v.type==='dodge').blocked,true);
+});
+
+test('dodge cannot move onto another pilot', () => {
+  const r=room2();
+  Object.assign(r.players[0], {x:1,y:1,energy:1});
+  Object.assign(r.players[1], {x:1,y:2});
+  submitAction(r,'a',{type:'dodge',dir:'down'});
+  submitAction(r,'b',{type:'shield'});
+  assert.deepEqual([r.players[0].x,r.players[0].y],[1,1]);
+  assert.equal(r.players[0].dodging,false);
+  assert.equal(r.players[0].energy,0);
+});
+
+test('successful dodge applies locked frame reduction after armor if blast hits', () => {
+  const r=room2(); // juggernaut 25% dodge, 20% armor; phoenix fires 28
+  Object.assign(r.players[0], {x:2,y:1,energy:1});
+  Object.assign(r.players[1], {x:0,y:2});
+  submitAction(r,'a',{type:'dodge',dir:'down'});
+  submitAction(r,'b',{type:'blast',dir:'right'});
+  // 28 * 80% = 22; 22 * 75% = 16.5 -> 17 damage
+  assert.equal(r.players[0].hp,133);
+  assert.equal(r.players[1].damageDealt,17);
+});
+
+test('dodge can evade a previously aligned shot entirely', () => {
+  const r=room2();
+  Object.assign(r.players[0], {x:2,y:2,energy:1});
+  Object.assign(r.players[1], {x:0,y:2});
+  submitAction(r,'a',{type:'dodge',dir:'up'});
+  submitAction(r,'b',{type:'blast',dir:'right'});
+  assert.equal(r.players[0].hp,150);
+  assert.equal(r.lastTurn.visuals.find(v=>v.type==='blast').hit,false);
+});
+
+test('a blocked dodge gets no damage reduction and regular armor still applies', () => {
+  const r=room2();
+  Object.assign(r.players[0], {x:0,y:2,energy:1});
+  Object.assign(r.players[1], {x:0,y:0});
+  submitAction(r,'a',{type:'dodge',dir:'left'});
+  submitAction(r,'b',{type:'blast',dir:'down'});
+  assert.equal(r.players[0].hp,128); // phoenix 28 into Juggernaut 20% armor ->22
+});
+
+test('dodge status resets at the following resolution and after return to lobby', () => {
+  const r=room2();
+  Object.assign(r.players[0], {x:1,y:1,energy:1});
+  submitAction(r,'a',{type:'dodge',dir:'right'});
+  submitAction(r,'b',{type:'overcharge'});
+  assert.equal(r.players[0].dodging,true);
+  submitAction(r,'a',{type:'overcharge'});
+  submitAction(r,'b',{type:'overcharge'});
+  assert.equal(r.players[0].dodging,false);
+  leaveRoom(r,'b');
+  returnToLobby(r,'a');
+  assert.equal(r.players[0].dodging,false);
+});
+
+test('dodge command never adds a second action within the same round', () => {
+  const r=room2();
+  submitAction(r,'a',{type:'dodge',dir:'up'});
+  assert.throws(()=>submitAction(r,'a',{type:'blast',dir:'down'}),/already locked/i);
+});
