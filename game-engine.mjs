@@ -1,3 +1,5 @@
+export const FRAMES = Object.freeze(['juggernaut', 'phoenix', 'astra', 'aurora']);
+
 export const ACTIONS = ['move', 'blast', 'shield', 'hack', 'overcharge'];
 export const DIRS = {
   up: { x: 0, y: -1 },
@@ -26,6 +28,7 @@ function newPlayer(id, name) {
   return {
     id,
     name: sanitizeName(name),
+    frame: null,
     ready: false,
     hp: 3,
     energy: 1,
@@ -68,6 +71,17 @@ export function addPlayer(room, id, name) {
   room.players.push(newPlayer(id, cleanName));
   room.updatedAt = Date.now();
   room.log.push(`${cleanName} joined the room.`);
+  return room;
+}
+
+export function selectFrame(room, playerId, frame) {
+  if (room.phase !== 'lobby') throw new Error('Frame selection is only available in the lobby.');
+  const player = room.players.find(p => p.id === playerId);
+  if (!player) throw new Error('Player not found.');
+  if (!FRAMES.includes(frame)) throw new Error('Invalid frame selection.');
+  player.frame = frame;
+  player.ready = false;
+  room.updatedAt = Date.now();
   return room;
 }
 
@@ -131,6 +145,7 @@ export function cleanupInactivePlayers(room, now = Date.now(), graceMs = DISCONN
 export function startGame(room, requesterId) {
   if (room.hostId !== requesterId) throw new Error('Only the host can start.');
   if (room.players.length < 2) throw new Error('At least 2 players are required.');
+  if (!room.players.every(p => FRAMES.includes(p.frame))) throw new Error('Every pilot must select a frame before starting.');
   if (!room.players.every(p => p.ready || p.id === room.hostId)) throw new Error('All non-host players must be ready.');
   room.phase = 'playing';
   room.round = 1;
