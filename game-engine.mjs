@@ -18,6 +18,15 @@ export function boardSizeFor(count) {
   return count <= 2 ? 5 : count <= 4 ? 6 : 7;
 }
 
+export function validatePilotName(name) {
+  if (typeof name !== 'string') throw new Error('Enter a callsign of 3–16 characters using letters, numbers, spaces, _ or -.');
+  const trimmed = name.trim();
+  if (trimmed.length < 3 || trimmed.length > 16 || !/^[A-Za-z0-9 _-]+$/.test(trimmed)) {
+    throw new Error('Enter a callsign of 3–16 characters using letters, numbers, spaces, _ or -.');
+  }
+  return trimmed;
+}
+
 export function sanitizeName(name) {
   return String(name ?? '').trim().replace(/[^a-zA-Z0-9 _-]/g, '').slice(0, 16) || 'Player';
 }

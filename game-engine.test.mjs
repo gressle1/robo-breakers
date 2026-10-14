@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   createRoomState,
+  validatePilotName,
   addPlayer,
   startGame,
   submitAction,
@@ -42,4 +43,13 @@ test('a locked command cannot be replaced before the other pilots submit',()=>{
   assert.throws(()=>submitAction(r,'a',{type:'blast',dir:'down'}),/already locked in/i);
   assert.equal(r.players[0].action.type,'overcharge');
   assert.equal(r.lastTurn,null);
+});
+
+
+test('pilot callsigns enforce the registration rules',()=>{
+  assert.equal(validatePilotName('  Robo-7  '),'Robo-7');
+  assert.throws(()=>validatePilotName('ab'),/3–16 characters/i);
+  assert.throws(()=>validatePilotName('this-callsign-is-too-long'),/3–16 characters/i);
+  assert.throws(()=>validatePilotName('Bad!Name'),/3–16 characters/i);
+  assert.throws(()=>validatePilotName(undefined),/3–16 characters/i);
 });
