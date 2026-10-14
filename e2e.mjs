@@ -25,6 +25,8 @@ try {
   const code = host.room.code;
   const guest = await req('/api/join',{name:'Sam',code});
 
+  await req('/api/selectFrame',{code,playerId:host.playerId,frame:'juggernaut'});
+  await req('/api/selectFrame',{code,playerId:guest.playerId,frame:'phoenix'});
   await req('/api/ready',{code,playerId:guest.playerId,ready:true});
   let state = await req('/api/start',{code,playerId:host.playerId});
   assert.equal(state.room.phase,'playing');
@@ -56,7 +58,7 @@ try {
   await req('/api/action',{code,playerId:host.playerId,action:{type:'move',dir:'right'}});
   await req('/api/action',{code,playerId:guest.playerId,action:{type:'overcharge'}});
 
-  for (let hit=0; hit<3; hit++) {
+  for (let hit=0; hit<7; hit++) {
     await req('/api/action',{code,playerId:host.playerId,action:{type:'blast',dir:'down'}});
     state = await req('/api/action',{code,playerId:guest.playerId,action:{type:'overcharge'}});
   }
@@ -67,7 +69,7 @@ try {
   state = await req('/api/rematch',{code,playerId:host.playerId});
   assert.equal(state.room.phase,'playing');
   assert.equal(state.room.round,1);
-  assert.equal(state.room.players.every(p=>p.hp===3 && p.alive),true);
+  assert.equal(state.room.players.every(p=>p.hp===({juggernaut:150,phoenix:110})[p.frame] && p.alive),true);
   assert.equal(state.room.players.every(p=>p.damageDealt===0 && p.eliminations===0),true);
 
   console.log(`E2E PASS room=${code} full-match-and-rematch players=${state.room.players.length}`);

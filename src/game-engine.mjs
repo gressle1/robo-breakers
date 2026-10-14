@@ -5,8 +5,8 @@ export const FRAME_STATS = Object.freeze({
   aurora: Object.freeze({ hp: 120, armor: 10, blast: 20, melee: 18, dodge: 45, move: 1, overdrive: 2 }),
 });
 export const FRAMES = Object.freeze(Object.keys(FRAME_STATS));
-// Combat currently implements base HP, blaster damage, and passive armor.
-// Melee, dodge reduction, and Overdrive movement require separate approved commands.
+// Combat implements base HP, blaster damage, passive armor, and the Stage 4A Dodge prototype.
+// Melee/CQC and Overdrive activation/movement are not implemented.
 export function blastDamage(attacker, defender) {
   const output = FRAME_STATS[attacker.frame]?.blast;
   const armor = FRAME_STATS[defender.frame]?.armor;
@@ -14,7 +14,7 @@ export function blastDamage(attacker, defender) {
   return Math.max(0, Math.round(output * (1 - armor / 100)));
 }
 
-export const ACTIONS = ['move', 'blast', 'shield', 'hack', 'overcharge'];
+export const ACTIONS = ['move', 'blast', 'shield', 'hack', 'overcharge', 'dodge'];
 export const DIRS = {
   up: { x: 0, y: -1 },
   down: { x: 0, y: 1 },
@@ -51,6 +51,7 @@ function newPlayer(id, name) {
     y: 0,
     action: null,
     shielded: false,
+    dodging: false,
     hacked: false,
     damageDealt: 0,
     eliminations: 0,
@@ -180,6 +181,7 @@ function resetPlayersForMatch(room) {
     p.alive = true;
     p.action = null;
     p.shielded = false;
+    p.dodging = false;
     p.hacked = false;
     p.damageDealt = 0;
     p.eliminations = 0;
@@ -201,7 +203,8 @@ export function submitAction(room, playerId, action) {
   if (!p || !p.alive) throw new Error('Player cannot act.');
   if (p.action) throw new Error('Command already locked in. Wait for the next round.');
   validateAction(action);
-  p.action = action;
+  if (action.type === 'dodge' && p.energy < 1) throw new Error('Dodge requires 1 energy.');
+  p.action = { type: action.type, ...(action.dir ? { dir: action.dir } : {}) };
   p.lastSeen = Date.now();
   room.updatedAt = Date.now();
   const alive = room.players.filter(x => x.alive);
@@ -211,7 +214,7 @@ export function submitAction(room, playerId, action) {
 
 function validateAction(action) {
   if (!action || !ACTIONS.includes(action.type)) throw new Error('Invalid action.');
-  if (['move', 'blast', 'hack'].includes(action.type) && !DIRS[action.dir]) throw new Error('Direction required.');
+  if (['move', 'blast', 'hack', 'dodge'].includes(action.type) && !DIRS[action.dir]) throw new Error('Direction required.');
 }
 
 function playerAt(room, x, y) {
@@ -238,7 +241,7 @@ export function resolveRound(room) {
     action: structuredClone(p.action),
     before: { x: p.x, y: p.y, hp: p.hp, energy: p.energy, alive: p.alive },
   }));
-  for (const p of alive) { p.shielded = false; p.hacked = false; }
+  for (const p of alive) { p.shielded = false; p.dodging = false; p.hacked = false; }
 
   // 1. Hacks resolve first.
   for (const p of alive) {
@@ -273,18 +276,33 @@ export function resolveRound(room) {
     }
   }
 
-  // 4. Movement and pushes, deterministic by player order.
+  // 4. Movement and directional dodge resolve in room/player order.
+  // Dodge costs a turn and one energy, never pushes, and provides frame-specific
+  // damage reduction only if the destination is unoccupied and inside the arena.
   for (const p of alive) {
-    if (!p.alive || p.action?.type !== 'move') continue;
+    if (!p.alive || !['move', 'dodge'].includes(p.action?.type)) continue;
+    const isDodge = p.action.type === 'dodge';
+    if (isDodge) p.energy -= 1;
     const d = DIRS[p.action.dir];
     const from = {x:p.x,y:p.y};
     const nx = p.x + d.x, ny = p.y + d.y;
     if (!inBounds(room, nx, ny)) {
-      visuals.push({ type:'move', actorId:p.id, from, to:from, blocked:true, dir:p.action.dir });
-      events.push(`${p.name} hit the arena wall.`);
+      visuals.push({ type: p.action.type, actorId:p.id, from, to:from, blocked:true, dir:p.action.dir });
+      events.push(isDodge ? `${p.name}'s dodge was blocked by the arena wall.` : `${p.name} hit the arena wall.`);
       continue;
     }
     const blocker = playerAt(room, nx, ny);
+    if (isDodge) {
+      if (blocker) {
+        visuals.push({ type:'dodge', actorId:p.id, from, to:from, blocked:true, dir:p.action.dir });
+        events.push(`${p.name}'s dodge was blocked by ${blocker.name}.`);
+      } else {
+        p.x = nx; p.y = ny; p.dodging = true;
+        visuals.push({ type:'dodge', actorId:p.id, from, to:{x:nx,y:ny}, blocked:false, dir:p.action.dir });
+        events.push(`${p.name} dodged ${p.action.dir} (-1 energy).`);
+      }
+      continue;
+    }
     if (!blocker) {
       p.x = nx; p.y = ny;
       visuals.push({ type:'move', actorId:p.id, from, to:{x:nx,y:ny}, dir:p.action.dir });
@@ -327,11 +345,15 @@ export function resolveRound(room) {
       visuals.push({ type:'blast', actorId:p.id, from, dir:p.action.dir, path, targetId:target.id, blocked:true, hit:true });
       events.push(`${target.name} blocked ${p.name}'s blast.`);
     } else {
-      const damage = blastDamage(p, target);
+      const armorAdjusted = blastDamage(p, target);
+      // Proposed staging rule: dodge reduction applies after armor, rounded to
+      // whole HP. A dodge must successfully reposition to grant reduction.
+      const reduction = target.dodging ? FRAME_STATS[target.frame].dodge : 0;
+      const damage = Math.max(0, Math.round(armorAdjusted * (1 - reduction / 100)));
       target.hp = Math.max(0, target.hp - damage);
       p.damageDealt += damage;
       visuals.push({ type:'blast', actorId:p.id, from, dir:p.action.dir, path, targetId:target.id, blocked:false, hit:true, eliminated:target.hp <= 0 });
-      events.push(`${p.name} blasted ${target.name} (-${damage} HP).`);
+      events.push(`${p.name} blasted ${target.name} (-${damage} HP${target.dodging ? `; ${reduction}% dodge reduction` : ''}).`);
       if (target.hp <= 0 && target.alive) {
         target.alive = false;
         p.eliminations += 1;
@@ -400,6 +422,7 @@ export function returnToLobby(room, requesterId) {
     p.energy = 1;
     p.alive = true;
     p.shielded = false;
+    p.dodging = false;
     p.hacked = false;
   }
   room.log = ['Returned to lobby.'];
