@@ -8,6 +8,7 @@ import {
   submitAction,
   rematch,
   publicRoom,
+  validatePilotName,
   touchPlayer,
   leaveRoom,
   cleanupInactivePlayers,
@@ -88,13 +89,14 @@ export default async (req: Request, _context: Context) => {
     const body: any = await parseBody(req);
     const op = body.op;
 
-    if (op === 'create') return json(await createRoom(body.name));
+    if (op === 'create') return json(await createRoom(validatePilotName(body.name)));
 
     if (op === 'join') {
+      const name = validatePilotName(body.name);
       const id = playerId();
       const room = await mutateRoom(body.code, r => {
         cleanupInactivePlayers(r);
-        addPlayer(r, id, body.name);
+        addPlayer(r, id, name);
       });
       return json({ playerId: id, room: publicRoom(room) });
     }
