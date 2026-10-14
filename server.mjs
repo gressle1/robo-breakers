@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
-import { createRoomState, addPlayer, startGame, submitAction, rematch, publicRoom } from './game-engine.mjs';
+import { createRoomState, addPlayer, startGame, submitAction, rematch, publicRoom, validatePilotName } from './game-engine.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const publicDir = path.join(__dirname, 'public');
@@ -35,13 +35,13 @@ const server = http.createServer(async (req,res) => {
   try {
     const url = new URL(req.url, `http://${req.headers.host}`);
     if (url.pathname === '/api/create' && req.method === 'POST') {
-      const b = await body(req); const playerId = id(); const roomCode = code();
-      const room = createRoomState(roomCode, playerId, b.name); rooms.set(roomCode, room);
+      const b = await body(req); const name = validatePilotName(b.name); const playerId = id(); const roomCode = code();
+      const room = createRoomState(roomCode, playerId, name); rooms.set(roomCode, room);
       return json(res,200,{playerId,room:publicRoom(room)});
     }
     if (url.pathname === '/api/join' && req.method === 'POST') {
-      const b = await body(req); const playerId = id(); const room = getRoom(b.code);
-      addPlayer(room, playerId, b.name); return json(res,200,{playerId,room:publicRoom(room)});
+      const b = await body(req); const name = validatePilotName(b.name); const playerId = id(); const room = getRoom(b.code);
+      addPlayer(room, playerId, name); return json(res,200,{playerId,room:publicRoom(room)});
     }
     if (url.pathname === '/api/state' && req.method === 'GET') {
       return json(res,200,{room:publicRoom(getRoom(url.searchParams.get('code')))});
