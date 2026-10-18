@@ -21,3 +21,21 @@
 .fx-dodge{animation:movePulse .6s ease both;outline:2px solid #c9a3ff66}
 .rules-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
 @media(max-width:480px){.rules-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* Robo Breakers v0.6: reference-faithful in-game frame portraits. */
+.frame-portrait{height:166px;width:100%;display:block;position:relative;overflow:hidden;background:radial-gradient(circle at 50% 30%,color-mix(in srgb,var(--fc) 17%,#101b2b),#070f1b 78%);border:1px solid color-mix(in srgb,var(--fc) 38%,#263750);border-radius:8px}
+.frame-portrait img{width:100%;height:100%;object-fit:contain;display:block;transition:transform .2s ease}
+.frame-choice:hover .frame-portrait img,.frame-choice.active .frame-portrait img{transform:scale(1.045)}
+.frame-choice.active .frame-portrait{box-shadow:0 0 0 1px var(--fc),0 0 17px color-mix(in srgb,var(--fc) 27%,transparent)}
+.frame-choice{overflow:hidden}.frame-choice strong{font-size:1.04rem}.frame-color{flex:none}
+.mini-bot{overflow:hidden;border-radius:8px;border:2px solid var(--fc);background:#07121d;box-shadow:0 0 9px color-mix(in srgb,var(--fc) 35%,transparent)}
+.mini-bot img{width:100%;height:100%;object-fit:cover;display:block}
+.frame-token{border:2px solid var(--fc);outline:2px solid var(--pc);outline-offset:1px;border-radius:11px;overflow:hidden;background:radial-gradient(circle,#223148,#07111e);box-shadow:0 0 12px color-mix(in srgb,var(--fc) 35%,transparent)}
+.frame-token img{width:100%;height:100%;object-fit:cover;display:block}
+.bot-frame-label{position:absolute;left:50%;top:18%;z-index:5;transform:translateX(-50%);background:#07131de9;padding:2px 4px;border:1px solid color-mix(in srgb,var(--pc) 65%,#1a2736);border-radius:4px;white-space:nowrap;font:900 clamp(.42rem,.7vw,.56rem) 'Chakra Petch',sans-serif;letter-spacing:.06em;color:var(--fc);max-width:100%;pointer-events:none}
+.bot:has(.frame-token) .bot-art{width:76%;height:72%;margin-top:3%}
+.bot:has(.frame-token) .facing{top:-1%}
+.bot:has(.frame-token) .bot-name{bottom:9%;font-size:clamp(.48rem,.82vw,.66rem)}
+@media(max-width:700px){.frame-portrait{height:145px}}
+@media(max-width:480px){.frame-portrait{height:118px}.frame-choice{padding:8px;gap:4px}.bot-frame-label{font-size:.43rem;letter-spacing:0;top:19%}.bot:has(.frame-token) .bot-art{width:82%;height:68%}}
+@media(prefers-reduced-motion:reduce){.frame-portrait img{transition:none}}

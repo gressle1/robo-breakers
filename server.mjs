@@ -69,7 +69,7 @@ const server = http.createServer(async (req,res) => {
 
     let filePath = url.pathname === '/' ? path.join(publicDir,'index.html') : path.join(publicDir,url.pathname);
     if (!filePath.startsWith(publicDir) || !fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) filePath=path.join(publicDir,'index.html');
-    const ext=path.extname(filePath); const types={'.html':'text/html','.js':'text/javascript','.css':'text/css','.svg':'image/svg+xml'};
+    const ext=path.extname(filePath); const types={'.html':'text/html','.js':'text/javascript','.css':'text/css','.svg':'image/svg+xml','.webp':'image/webp'};
     res.writeHead(200,{'content-type':types[ext]||'text/plain'}); fs.createReadStream(filePath).pipe(res);
   } catch (err) { json(res,400,{error:err.message || 'Request failed.'}); }
 });
