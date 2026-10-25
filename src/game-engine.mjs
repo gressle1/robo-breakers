@@ -5,8 +5,10 @@ export const FRAME_STATS = Object.freeze({
   aurora: Object.freeze({ hp: 120, armor: 10, blast: 20, melee: 18, dodge: 45, move: 1, overdrive: 2 }),
 });
 export const FRAMES = Object.freeze(Object.keys(FRAME_STATS));
-// Combat implements base HP, blaster damage, passive armor, and the Stage 4A Dodge prototype.
-// Melee/CQC and Overdrive activation/movement are not implemented.
+// Combat implements base HP, blaster damage, passive armor, Dodge, and Overdrive activation.
+// Frame-specific Overdrive bonuses and melee/CQC are reserved for a separate update.
+export const OVERDRIVE_COST = 3;
+export const OVERDRIVE_DURATION = 3;
 export function blastDamage(attacker, defender) {
   const output = FRAME_STATS[attacker.frame]?.blast;
   const armor = FRAME_STATS[defender.frame]?.armor;
@@ -14,7 +16,7 @@ export function blastDamage(attacker, defender) {
   return Math.max(0, Math.round(output * (1 - armor / 100)));
 }
 
-export const ACTIONS = ['move', 'blast', 'shield', 'hack', 'overcharge', 'dodge'];
+export const ACTIONS = ['move', 'blast', 'shield', 'hack', 'overcharge', 'dodge', 'overdrive'];
 export const DIRS = {
   up: { x: 0, y: -1 },
   down: { x: 0, y: 1 },
@@ -46,6 +48,7 @@ function newPlayer(id, name) {
     ready: false,
     hp: 3,
     energy: 1,
+    overdriveRounds: 0,
     alive: true,
     x: 0,
     y: 0,
@@ -178,6 +181,7 @@ function resetPlayersForMatch(room) {
   for (const p of room.players) {
     p.hp = FRAME_STATS[p.frame]?.hp ?? 0;
     p.energy = 1;
+    p.overdriveRounds = 0;
     p.alive = true;
     p.action = null;
     p.shielded = false;
@@ -204,6 +208,10 @@ export function submitAction(room, playerId, action) {
   if (p.action) throw new Error('Command already locked in. Wait for the next round.');
   validateAction(action);
   if (action.type === 'dodge' && p.energy < 1) throw new Error('Dodge requires 1 energy.');
+  if (action.type === 'overdrive') {
+    if ((p.overdriveRounds || 0) > 0) throw new Error('Overdrive is already active.');
+    if (p.energy < OVERDRIVE_COST) throw new Error(`Overdrive requires ${OVERDRIVE_COST} energy.`);
+  }
   p.action = { type: action.type, ...(action.dir ? { dir: action.dir } : {}) };
   p.lastSeen = Date.now();
   room.updatedAt = Date.now();
@@ -239,7 +247,7 @@ export function resolveRound(room) {
     id: p.id,
     name: p.name,
     action: structuredClone(p.action),
-    before: { x: p.x, y: p.y, hp: p.hp, energy: p.energy, alive: p.alive },
+    before: { x: p.x, y: p.y, hp: p.hp, energy: p.energy, overdriveRounds: p.overdriveRounds || 0, alive: p.alive },
   }));
   for (const p of alive) { p.shielded = false; p.dodging = false; p.hacked = false; }
 
@@ -274,6 +282,19 @@ export function resolveRound(room) {
       visuals.push({ type: 'overcharge', actorId: p.id, at: {x:p.x,y:p.y} });
       events.push(`${p.name} overcharged (+1 energy).`);
     }
+  }
+
+  // 3b. Overdrive costs a full command and 3 energy. The next three
+  // completed rounds count down its duration (activation round excluded).
+  // Powers are deliberately deferred: no frame gets a stat bonus in this step.
+  const activatedOverdrive = new Set();
+  for (const p of alive) {
+    if (p.action?.type !== 'overdrive') continue;
+    p.energy -= OVERDRIVE_COST;
+    p.overdriveRounds = OVERDRIVE_DURATION;
+    activatedOverdrive.add(p.id);
+    visuals.push({ type: 'overdrive', actorId: p.id, at: {x:p.x,y:p.y}, rounds: OVERDRIVE_DURATION });
+    events.push(`${p.name} activated OVERDRIVE (-${OVERDRIVE_COST} energy; ${OVERDRIVE_DURATION} rounds).`);
   }
 
   // 4. Movement and directional dodge resolve in room/player order.
@@ -356,15 +377,27 @@ export function resolveRound(room) {
       events.push(`${p.name} blasted ${target.name} (-${damage} HP${target.dodging ? `; ${reduction}% dodge reduction` : ''}).`);
       if (target.hp <= 0 && target.alive) {
         target.alive = false;
+        target.overdriveRounds = 0;
         p.eliminations += 1;
         events.push(`${target.name} HAS BEEN DECOMPILED.`);
       }
     }
   }
 
+  // Expire one active round only after it has had a complete turn to run.
+  // A new activation retains all 3 rounds until the next resolution.
+  for (const p of alive) {
+    if (!p.alive || !(p.overdriveRounds > 0) || activatedOverdrive.has(p.id)) continue;
+    p.overdriveRounds -= 1;
+    if (p.overdriveRounds === 0) {
+      visuals.push({type:'overdrive-end', actorId:p.id, at:{x:p.x,y:p.y}});
+      events.push(`${p.name}'s Overdrive ended.`);
+    }
+  }
+
   for (const a of revealedActions) {
     const p = room.players.find(x => x.id === a.id);
-    a.after = p ? { x:p.x, y:p.y, hp:p.hp, energy:p.energy, alive:p.alive } : null;
+    a.after = p ? { x:p.x, y:p.y, hp:p.hp, energy:p.energy, overdriveRounds:p.overdriveRounds || 0, alive:p.alive } : null;
   }
 
   const survivors = room.players.filter(p => p.alive);
@@ -420,6 +453,7 @@ export function returnToLobby(room, requesterId) {
     p.action = null;
     p.hp = FRAME_STATS[p.frame]?.hp ?? 0;
     p.energy = 1;
+    p.overdriveRounds = 0;
     p.alive = true;
     p.shielded = false;
     p.dodging = false;
