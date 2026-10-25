@@ -74,15 +74,62 @@
 .blast-fx-layer{position:absolute;inset:0;z-index:12;overflow:hidden;pointer-events:none;isolation:isolate}
 .combat-shot{position:absolute;inset:0;--shot-color:#62d9ff}
 .blast-flight{position:absolute;height:0;transform-origin:left center;filter:drop-shadow(0 0 5px var(--shot-color))}
-.blast-flight:before{content:"";position:absolute;left:0;top:-1px;width:100%;height:3px;background:linear-gradient(90deg,transparent,var(--shot-color),#fff);transform-origin:left;animation:blastTrace .42s linear both;animation-delay:calc(700ms + var(--fx-age))}
-.blast-bolt{position:absolute;left:0;top:0;width:clamp(9px,1.8vw,19px);height:5px;border-radius:99px;background:#fff;box-shadow:0 0 5px 2px #fff,0 0 12px 5px var(--shot-color);transform:translate(-50%,-50%);animation:blastTravel .42s linear both;animation-delay:calc(700ms + var(--fx-age))}
-.blast-impact{position:absolute;width:32%;height:32%;max-width:68px;max-height:68px;border-radius:50%;border:3px solid var(--shot-color);background:radial-gradient(circle,#fff9,var(--shot-color) 32%,transparent 70%);box-shadow:0 0 22px var(--shot-color),inset 0 0 10px #fff6;transform:translate(-50%,-50%) scale(0);animation:blastImpact .55s ease-out both;animation-delay:calc(1120ms + var(--fx-age))}
+.blast-flight:before{content:"";position:absolute;left:0;top:-1px;width:100%;height:3px;background:linear-gradient(90deg,transparent,var(--shot-color),#fff);transform-origin:left;animation:blastTrace .42s linear both;animation-delay:calc(1160ms + var(--fx-age))}
+.blast-bolt{position:absolute;left:0;top:0;width:clamp(9px,1.8vw,19px);height:5px;border-radius:99px;background:#fff;box-shadow:0 0 5px 2px #fff,0 0 12px 5px var(--shot-color);transform:translate(-50%,-50%);animation:blastTravel .42s linear both;animation-delay:calc(1160ms + var(--fx-age))}
+.blast-impact{position:absolute;width:32%;height:32%;max-width:68px;max-height:68px;border-radius:50%;border:3px solid var(--shot-color);background:radial-gradient(circle,#fff9,var(--shot-color) 32%,transparent 70%);box-shadow:0 0 22px var(--shot-color),inset 0 0 10px #fff6;transform:translate(-50%,-50%) scale(0);animation:blastImpact .55s ease-out both;animation-delay:calc(1580ms + var(--fx-age))}
 .blast-impact.blocked{border-color:#73e9ff;background:radial-gradient(circle,#dfffffcc,#47a6f388,transparent 72%);box-shadow:0 0 22px #63d9ff}
 .blast-impact.miss{width:13%;height:13%;border-color:#9ab2c8;opacity:.5}
-.blast-damage{position:absolute;z-index:3;min-width:4em;padding:2px 5px;border-radius:5px;background:#070e1de0;border:1px solid #ffbc81;color:#ffe4b0;font:900 clamp(.57rem,1.3vw,.85rem) 'Chakra Petch',sans-serif;letter-spacing:.04em;text-align:center;white-space:nowrap;text-shadow:0 1px 5px #000;transform:translate(-50%,-50%);animation:blastDamageRise 1.05s ease-out both;animation-delay:calc(1140ms + var(--fx-age))}
+.blast-damage{position:absolute;z-index:3;min-width:4em;padding:2px 5px;border-radius:5px;background:#070e1de0;border:1px solid #ffbc81;color:#ffe4b0;font:900 clamp(.57rem,1.3vw,.85rem) 'Chakra Petch',sans-serif;letter-spacing:.04em;text-align:center;white-space:nowrap;text-shadow:0 1px 5px #000;transform:translate(-50%,-50%);animation:blastDamageRise 1.05s ease-out both;animation-delay:calc(1600ms + var(--fx-age))}
 .blast-damage.blocked{color:#a6edff;border-color:#63d9ff}.blast-damage.miss{color:#a9bdd0;border-color:#64758d}
 @keyframes blastTrace{0%{transform:scaleX(0);opacity:0}15%{opacity:1}95%{opacity:1}100%{transform:scaleX(1);opacity:0}}
 @keyframes blastTravel{0%{left:0;opacity:0}10%{opacity:1}85%{opacity:1}100%{left:100%;opacity:0}}
 @keyframes blastImpact{0%{opacity:0;transform:translate(-50%,-50%) scale(.2)}30%{opacity:1;transform:translate(-50%,-50%) scale(1)}100%{opacity:0;transform:translate(-50%,-50%) scale(1.65)}}
 @keyframes blastDamageRise{0%{opacity:0;transform:translate(-50%,-25%) scale(.7)}20%{opacity:1;transform:translate(-50%,-100%) scale(1.05)}80%{opacity:1}100%{opacity:0;transform:translate(-50%,-170%) scale(1)}}
 @media(prefers-reduced-motion:reduce){.blast-fx-layer{display:none}}
+
+
+/* Step 9: smooth Chibi movement / distinct Dodge visual / Phoenix rifle beam.
+   Cosmetic only; positions and HP still come exclusively from server events. */
+.motion-fx-layer{position:absolute;inset:0;z-index:11;pointer-events:none;overflow:hidden;isolation:isolate}
+.motion-unit{position:absolute;inset:0;--motion-color:#62d9ff;--board-size:5;pointer-events:none}
+.motion-unit .motion-sprite{position:absolute;left:var(--from-x);top:var(--from-y);width:calc(86% / var(--board-size));height:calc(86% / var(--board-size));display:grid;place-items:center;transform:translate(-50%,-50%);opacity:0;filter:drop-shadow(0 0 9px var(--motion-color));animation:chibiTraverse .65s cubic-bezier(.16,.65,.21,1) both;animation-delay:calc(470ms + var(--fx-age))}
+.motion-unit .motion-sprite img{display:block;width:100%;height:100%;object-fit:contain;user-select:none;pointer-events:none}
+.motion-unit .motion-streak{position:absolute;left:var(--from-x);top:var(--from-y);width:calc(70% / var(--board-size));height:calc(30% / var(--board-size));border-radius:80%;transform:translate(-50%,-50%);background:radial-gradient(ellipse,var(--motion-color),transparent 74%);filter:blur(8px);opacity:0;animation:chibiTrail .65s cubic-bezier(.16,.65,.21,1) both;animation-delay:calc(470ms + var(--fx-age))}
+.motion-unit .motion-burst{position:absolute;left:var(--to-x);top:var(--to-y);width:calc(47% / var(--board-size));height:calc(47% / var(--board-size));border:2px solid var(--motion-color);border-radius:50%;box-shadow:0 0 13px var(--motion-color);transform:translate(-50%,-50%) scale(.25);opacity:0;animation:motionLand .38s ease-out both;animation-delay:calc(1010ms + var(--fx-age))}
+.motion-unit.dodge .motion-sprite{animation:chibiDodge .33s cubic-bezier(.22,.8,.1,1) both;animation-delay:calc(510ms + var(--fx-age));filter:drop-shadow(0 0 15px #dcb4ff) drop-shadow(0 0 5px var(--motion-color))}
+.motion-unit.dodge .motion-streak{animation:chibiDodgeTrail .57s ease-out both;animation-delay:calc(510ms + var(--fx-age));background:linear-gradient(90deg,transparent,#b981ffbb,var(--motion-color),transparent);filter:blur(7px);height:calc(24% / var(--board-size))}
+.motion-unit.dodge .motion-burst{border-color:#c8a8ff;box-shadow:0 0 20px #b981ff,0 0 30px var(--motion-color);animation-delay:calc(790ms + var(--fx-age))}
+.motion-unit.pushed .motion-sprite{animation-duration:.53s;animation-delay:calc(540ms + var(--fx-age));filter:drop-shadow(0 0 9px #ffcf72)}
+.motion-unit.pushed .motion-streak{animation-duration:.53s;animation-delay:calc(540ms + var(--fx-age))}
+.motion-unit.pushed .motion-burst{animation-delay:calc(1000ms + var(--fx-age))}
+.motion-blocked{position:absolute;z-index:2;white-space:nowrap;padding:3px 5px;border-radius:5px;transform:translate(-50%,-50%) scale(.6);background:#160f1de8;border:1px solid var(--motion-color);color:#e8f3ff;font:900 clamp(.45rem,1.2vw,.75rem) 'Chakra Petch',sans-serif;letter-spacing:.04em;text-shadow:0 0 6px #000;animation:motionBlocked .7s ease-out both;animation-delay:calc(490ms + var(--fx-age))}
+.motion-blocked.dodge-blocked{color:#eed6ff;border-color:#ba95ff}
+@keyframes chibiTraverse{0%{left:var(--from-x);top:var(--from-y);opacity:0;transform:translate(-50%,-50%) scale(.85)}12%{opacity:.95}48%{transform:translate(-50%,-57%) scale(1.07)}85%{opacity:.95}100%{left:var(--to-x);top:var(--to-y);opacity:0;transform:translate(-50%,-50%) scale(.94)}}
+@keyframes chibiTrail{0%{left:var(--from-x);top:var(--from-y);opacity:0}18%{opacity:.75}72%{opacity:.5}100%{left:var(--to-x);top:var(--to-y);opacity:0}}
+@keyframes chibiDodge{0%{left:var(--from-x);top:var(--from-y);opacity:0;transform:translate(-50%,-50%) skew(-9deg) scale(.88)}10%{opacity:1}52%{opacity:1;transform:translate(-50%,-50%) skew(15deg) scale(1.08)}100%{left:var(--to-x);top:var(--to-y);opacity:0;transform:translate(-50%,-50%) scale(1)}}
+@keyframes chibiDodgeTrail{0%{left:var(--from-x);top:var(--from-y);opacity:0}20%{opacity:.85}80%{opacity:.5}100%{left:var(--to-x);top:var(--to-y);opacity:0}}
+@keyframes motionLand{0%{opacity:0;transform:translate(-50%,-50%) scale(.15)}40%{opacity:1}100%{opacity:0;transform:translate(-50%,-50%) scale(1.7)}}
+@keyframes motionBlocked{0%{opacity:0;transform:translate(-50%,-20%) scale(.6)}25%,70%{opacity:1}100%{opacity:0;transform:translate(-50%,-95%) scale(1)}}
+/* Existing static destination effects should not restart after every 700ms poll. */
+.fx-move .mini-figure .sprite-token img{animation:none}
+.fx-dodge{animation:none}
+/* Phoenix's high-output Phoenix Rifle: charged muzzle, broad beam, white-hot core. */
+.phoenix-heavy .blast-flight{filter:drop-shadow(0 0 13px #ff5533) drop-shadow(0 0 6px #ffbd72)}
+.phoenix-heavy .blast-flight:before{top:-5px;height:10px;border-radius:12px;background:linear-gradient(90deg,#f63a36,#ffb05a,#fff5e1);box-shadow:0 0 12px #ff382a,0 0 24px #ff7612;animation:phoenixBeamTrace .46s linear both;animation-delay:calc(1140ms + var(--fx-age))}
+.phoenix-heavy .blast-bolt{width:clamp(21px,4vw,44px);height:11px;background:radial-gradient(ellipse,#fff,#fff2bd 45%,#ff683a 78%);box-shadow:0 0 6px 3px #fff,0 0 21px 8px #ff5139;animation-duration:.46s;animation-delay:calc(1140ms + var(--fx-age))}
+.phoenix-heavy .beam-core{position:absolute;left:0;top:-2px;width:100%;height:4px;background:linear-gradient(90deg,#fff3b6,#fff,#fff8db);border-radius:99px;filter:drop-shadow(0 0 7px #fff6a2);transform-origin:left center;animation:phoenixBeamTrace .52s ease-out both;animation-delay:calc(1140ms + var(--fx-age))}
+.phoenix-muzzle{position:absolute;z-index:2;width:clamp(24px,4.1vw,54px);height:clamp(24px,4.1vw,54px);border:3px solid #fff5bf;border-radius:50%;background:radial-gradient(circle,#fff,#fff2bf 15%,#ff7c33aa 44%,transparent 73%);box-shadow:0 0 22px #ff482d,0 0 36px #ff9a3c;transform:translate(-50%,-50%) scale(.2);animation:phoenixMuzzle .47s ease-out both;animation-delay:calc(1090ms + var(--fx-age))}
+.phoenix-heavy .blast-impact{border-width:4px;box-shadow:0 0 32px #ff4e29,0 0 18px #ffd095,inset 0 0 20px #fff4c9}
+.phoenix-heavy .blast-impact.blocked{border-color:#79edff;box-shadow:0 0 30px #63d9ff,inset 0 0 14px #fff}
+.phoenix-heavy .blast-damage.hit{border-color:#ff9c4f;color:#fff0c1;box-shadow:0 0 12px #ff5e3044}
+@keyframes phoenixBeamTrace{0%{transform:scaleX(0);opacity:0}14%{opacity:1}65%{transform:scaleX(1);opacity:1}100%{transform:scaleX(1);opacity:0}}
+@keyframes phoenixMuzzle{0%{opacity:0;transform:translate(-50%,-50%) scale(.2)}35%{opacity:1;transform:translate(-50%,-50%) scale(1.35)}100%{opacity:0;transform:translate(-50%,-50%) scale(1.65)}}
+@media(prefers-reduced-motion:reduce){.motion-fx-layer,.phoenix-muzzle,.phoenix-heavy .beam-core{display:none}}
+
+/* Hide the already-updated destination sprite until its replay reaches the cell.
+   Age compensation makes this safe across 700ms client polls. */
+.tile.fx-move .bot.mini-figure,.tile.fx-dodge .bot.mini-figure,.tile.fx-rammed .bot.mini-figure{animation:chibiArrive .65s step-end both;animation-delay:calc(470ms + var(--fx-age))}
+.tile.fx-dodge .bot.mini-figure{animation-duration:.33s;animation-delay:calc(510ms + var(--fx-age))}
+.tile.fx-rammed .bot.mini-figure{animation-duration:.53s;animation-delay:calc(540ms + var(--fx-age))}
+@keyframes chibiArrive{0%,99%{opacity:0}100%{opacity:1}}
+@media(prefers-reduced-motion:reduce){.tile.fx-move .bot.mini-figure,.tile.fx-dodge .bot.mini-figure,.tile.fx-rammed .bot.mini-figure{animation:none}}
