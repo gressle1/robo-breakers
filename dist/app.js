@@ -93,7 +93,41 @@ function motionEffects(t,r){
   }).join('');
   return motions?`<div class="motion-fx-layer" aria-hidden="true" style="--fx-age:-${age}ms">${motions}</div>`:'';
 }
-function board(){const r=state.room,preview=previewMap(),fx=fxMap();let tiles='';for(let y=0;y<r.boardSize;y++){for(let x=0;x<r.boardSize;x++){const p=r.players.find(q=>q.alive&&q.x===x&&q.y===y);const idx=p?r.players.findIndex(q=>q.id===p.id):-1;const classes=[...(preview.get(`${x},${y}`)||[]),...(fx.get(`${x},${y}`)||[])].join(' ');tiles+=`<div class="tile ${classes}" data-x="${x}" data-y="${y}">${p?botPiece(p,idx):''}</div>`}}return `<div class="arena-wrap"><div class="arena-label"><span>ARENA // ${r.boardSize}×${r.boardSize}</span><span>${r.players.filter(p=>p.alive).length} ACTIVE // ${r.players.length} PILOTS</span></div><div class="board" style="grid-template-columns:repeat(${r.boardSize},minmax(0,1fr));grid-template-rows:repeat(${r.boardSize},minmax(0,1fr));--fx-age:-${state.fx?Math.max(0,Date.now()-state.fxStartedAt):0}ms">${tiles}${state.fx?motionEffects(state.fx,r)+blastEffects(state.fx,r):''}</div><div class="arena-hint">${previewLegend()}</div></div>`}
+// Step 10. Shield, Hack, and Overcharge are client-side cosmetic replays.
+// Every position and outcome below comes from the authoritative lastTurn.visuals.
+// Keep this layer independent of live controls and combat calculations.
+function abilityEffects(t,r){
+  if(!t?.visuals?.length)return '';
+  const n=r.boardSize||5;
+  const age=Math.max(0,Date.now()-state.fxStartedAt);
+  const point=p=>({x:(p.x+.5)*100/n,y:(p.y+.5)*100/n});
+  const fxColor=id=>FRAMES.find(f=>f.id===r.players.find(p=>p.id===id)?.frame)?.color||'#62d9ff';
+  const effects=t.visuals.filter(v=>['shield','hack','overcharge'].includes(v.type)).map(v=>{
+    if(v.type==='shield'){
+      if(!v.at)return '';
+      const q=point(v.at),kind=v.active?'active':'disabled';
+      return `<div class="ability-unit ability-shield ${kind}" style="--ability-color:#62d9ff;--fx-x:${q.x}%;--fx-y:${q.y}%;--board-size:${n}"><span class="ability-shield-shell"></span><span class="ability-shield-hex"></span><span class="ability-status">${v.active?'SHIELD ONLINE':'SHIELD DISABLED'}</span></div>`;
+    }
+    if(v.type==='overcharge'){
+      if(!v.at)return '';
+      const q=point(v.at);
+      return `<div class="ability-unit ability-overcharge" style="--ability-color:${fxColor(v.actorId)};--fx-x:${q.x}%;--fx-y:${q.y}%;--board-size:${n}"><span class="ability-core"></span><span class="ability-surge"></span><span class="ability-status">ϟ +1 ENERGY</span></div>`;
+    }
+    if(v.type==='hack'){
+      if(!v.from)return '';
+      const a=point(v.from);
+      if(!v.success||!v.target){
+        return `<div class="ability-unit ability-hack fail" style="--ability-color:#b58cff;--fx-x:${a.x}%;--fx-y:${a.y}%;--board-size:${n}"><span class="ability-hack-glitch"></span><span class="ability-status">NO TARGET</span></div>`;
+      }
+      const b=point(v.target),dx=b.x-a.x,dy=b.y-a.y;
+      const angle=Math.atan2(dy,dx)*180/Math.PI,dist=Math.hypot(dx,dy);
+      return `<div class="ability-hack-trace" style="left:${a.x}%;top:${a.y}%;width:${dist}%;transform:rotate(${angle}deg)"><i></i></div><div class="ability-unit ability-hack success" style="--ability-color:#b58cff;--fx-x:${b.x}%;--fx-y:${b.y}%;--board-size:${n}"><span class="ability-hack-glitch"></span><span class="ability-hack-cross">✕</span><span class="ability-status">HACKED</span></div>`;
+    }
+    return '';
+  }).join('');
+  return effects?`<div class="ability-fx-layer" aria-hidden="true" style="--fx-age:-${age}ms">${effects}</div>`:'';
+}
+function board(){const r=state.room,preview=previewMap(),fx=fxMap();let tiles='';for(let y=0;y<r.boardSize;y++){for(let x=0;x<r.boardSize;x++){const p=r.players.find(q=>q.alive&&q.x===x&&q.y===y);const idx=p?r.players.findIndex(q=>q.id===p.id):-1;const classes=[...(preview.get(`${x},${y}`)||[]),...(fx.get(`${x},${y}`)||[])].join(' ');tiles+=`<div class="tile ${classes}" data-x="${x}" data-y="${y}">${p?botPiece(p,idx):''}</div>`}}return `<div class="arena-wrap"><div class="arena-label"><span>ARENA // ${r.boardSize}×${r.boardSize}</span><span>${r.players.filter(p=>p.alive).length} ACTIVE // ${r.players.length} PILOTS</span></div><div class="board" style="grid-template-columns:repeat(${r.boardSize},minmax(0,1fr));grid-template-rows:repeat(${r.boardSize},minmax(0,1fr));--fx-age:-${state.fx?Math.max(0,Date.now()-state.fxStartedAt):0}ms">${tiles}${state.fx?abilityEffects(state.fx,r)+motionEffects(state.fx,r)+blastEffects(state.fx,r):''}</div><div class="arena-hint">${previewLegend()}</div></div>`}
 function previewLegend(){if(me()?.lockedIn)return 'COMMAND LOCKED // waiting for remaining pilots';const m=ACTION_META[state.actionType];return `${m[0]} ${['move','blast','hack','dodge'].includes(state.actionType)?DIR_ICON[state.dir]:''} // ${m[2]}`}
 function botPiece(p,i){const c=PALETTE[i%PALETTE.length];const facing=p.id===state.playerId&&['move','blast','hack','dodge'].includes(state.actionType)?state.dir:'up';const status=p.shielded?'shielded':p.hacked?'hacked':p.hp<=Math.ceil((FRAMES.find(f=>f.id===p.frame)?.hp??100)*.25)?'critical':p.hp<=Math.ceil((FRAMES.find(f=>f.id===p.frame)?.hp??100)*.5)?'damaged':'';return `<div class="bot mini-figure ${p.id===state.playerId?'me':''} ${status}" style="--pc:${c}" title="${esc(p.name)} / ${esc(FRAMES.find(f=>f.id===p.frame)?.name||"Robot")} — ${p.hp}/${FRAMES.find(f=>f.id===p.frame)?.hp??p.hp} HP, ${p.energy} energy"><div class="facing facing-${facing}">▲</div><div class="bot-art sprite-token" style="--fc:${FRAMES.find(f=>f.id===p.frame)?.color||c}">${frameArt(p.frame,'sprite')||botSvg(c,i)}</div><span class="bot-frame-label">${esc(FRAMES.find(f=>f.id===p.frame)?.name||"ROBOT")}</span>${p.shielded?'<div class="bot-status">SHIELD</div>':p.hacked?'<div class="bot-status">HACKED</div>':p.dodging?'<div class="bot-status">DODGE</div>':''}<div class="bot-name">${esc(p.name)}</div><div class="hpbar"><i class="on" style="width:${Math.max(0,Math.min(100,Math.round(p.hp/(FRAMES.find(f=>f.id===p.frame)?.hp||100)*100)))}%"></i></div></div>`}
 function previewText(){const m=ACTION_META[state.actionType];return `${m[0]}${['move','blast','hack','dodge'].includes(state.actionType)?' '+DIR_ICON[state.dir]:''} — ${m[2]}`}
