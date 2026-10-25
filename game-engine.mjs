@@ -5,16 +5,23 @@ export const FRAME_STATS = Object.freeze({
   aurora: Object.freeze({ hp: 120, armor: 10, blast: 20, melee: 18, dodge: 45, move: 1, overdrive: 2 }),
 });
 export const FRAMES = Object.freeze(Object.keys(FRAME_STATS));
-// Combat implements base HP, blaster damage, passive armor, and the Stage 4A Dodge prototype.
-// Melee/CQC and Overdrive activation/movement are not implemented.
+// Combat implements base HP, blaster damage, passive armor, Dodge, and Overdrive.
+// The first two frame-specific bonuses are Astra movement and Phoenix blast.
+// Other frame-specific abilities and melee/CQC remain for later updates.
+export const OVERDRIVE_COST = 3;
+export const OVERDRIVE_DURATION = 3;
+// Provisional +25% Phoenix output during Overdrive. 28 -> 35 before armor.
+export const PHOENIX_OVERDRIVE_BLAST = 35;
 export function blastDamage(attacker, defender) {
-  const output = FRAME_STATS[attacker.frame]?.blast;
+  const base = FRAME_STATS[attacker.frame]?.blast;
+  const output = attacker.frame === 'phoenix' && (attacker.overdriveRounds || 0) > 0
+    ? PHOENIX_OVERDRIVE_BLAST : base;
   const armor = FRAME_STATS[defender.frame]?.armor;
   if (output === undefined || armor === undefined) throw new Error('Both combatants need valid frames.');
   return Math.max(0, Math.round(output * (1 - armor / 100)));
 }
 
-export const ACTIONS = ['move', 'blast', 'shield', 'hack', 'overcharge', 'dodge'];
+export const ACTIONS = ['move', 'blast', 'shield', 'hack', 'overcharge', 'dodge', 'overdrive'];
 export const DIRS = {
   up: { x: 0, y: -1 },
   down: { x: 0, y: 1 },
@@ -46,6 +53,7 @@ function newPlayer(id, name) {
     ready: false,
     hp: 3,
     energy: 1,
+    overdriveRounds: 0,
     alive: true,
     x: 0,
     y: 0,
@@ -178,6 +186,7 @@ function resetPlayersForMatch(room) {
   for (const p of room.players) {
     p.hp = FRAME_STATS[p.frame]?.hp ?? 0;
     p.energy = 1;
+    p.overdriveRounds = 0;
     p.alive = true;
     p.action = null;
     p.shielded = false;
@@ -204,6 +213,10 @@ export function submitAction(room, playerId, action) {
   if (p.action) throw new Error('Command already locked in. Wait for the next round.');
   validateAction(action);
   if (action.type === 'dodge' && p.energy < 1) throw new Error('Dodge requires 1 energy.');
+  if (action.type === 'overdrive') {
+    if ((p.overdriveRounds || 0) > 0) throw new Error('Overdrive is already active.');
+    if (p.energy < OVERDRIVE_COST) throw new Error(`Overdrive requires ${OVERDRIVE_COST} energy.`);
+  }
   p.action = { type: action.type, ...(action.dir ? { dir: action.dir } : {}) };
   p.lastSeen = Date.now();
   room.updatedAt = Date.now();
@@ -239,7 +252,7 @@ export function resolveRound(room) {
     id: p.id,
     name: p.name,
     action: structuredClone(p.action),
-    before: { x: p.x, y: p.y, hp: p.hp, energy: p.energy, alive: p.alive },
+    before: { x: p.x, y: p.y, hp: p.hp, energy: p.energy, overdriveRounds: p.overdriveRounds || 0, alive: p.alive },
   }));
   for (const p of alive) { p.shielded = false; p.dodging = false; p.hacked = false; }
 
@@ -276,50 +289,76 @@ export function resolveRound(room) {
     }
   }
 
-  // 4. Movement and directional dodge resolve in room/player order.
-  // Dodge costs a turn and one energy, never pushes, and provides frame-specific
-  // damage reduction only if the destination is unoccupied and inside the arena.
+  // 3b. Overdrive costs a full command and 3 energy. The next three
+  // completed rounds count down its duration (activation round excluded).
+  // Astra speed and Phoenix blast bonuses apply during following active rounds.
+  const activatedOverdrive = new Set();
+  for (const p of alive) {
+    if (p.action?.type !== 'overdrive') continue;
+    p.energy -= OVERDRIVE_COST;
+    p.overdriveRounds = OVERDRIVE_DURATION;
+    activatedOverdrive.add(p.id);
+    visuals.push({ type: 'overdrive', actorId: p.id, at: {x:p.x,y:p.y}, rounds: OVERDRIVE_DURATION });
+    events.push(`${p.name} activated OVERDRIVE (-${OVERDRIVE_COST} energy; ${OVERDRIVE_DURATION} rounds).`);
+  }
+
+  // 4. Movement and directional Dodge resolve sequentially in player order.
+  // Astra can MOVE 3 and Aurora 2 squares per active Overdrive turn. Intermediate
+  // squares are checked to prevent jumping through walls or other machines.
+  // A ram can push one adjacent blocker, then ends the move for this command.
+  // Dodge remains a one-square action costing one energy, even when blocked.
   for (const p of alive) {
     if (!p.alive || !['move', 'dodge'].includes(p.action?.type)) continue;
     const isDodge = p.action.type === 'dodge';
     if (isDodge) p.energy -= 1;
     const d = DIRS[p.action.dir];
-    const from = {x:p.x,y:p.y};
-    const nx = p.x + d.x, ny = p.y + d.y;
-    if (!inBounds(room, nx, ny)) {
-      visuals.push({ type: p.action.type, actorId:p.id, from, to:from, blocked:true, dir:p.action.dir });
-      events.push(isDodge ? `${p.name}'s dodge was blocked by the arena wall.` : `${p.name} hit the arena wall.`);
-      continue;
-    }
-    const blocker = playerAt(room, nx, ny);
-    if (isDodge) {
+    const from = { x: p.x, y: p.y };
+    const maxSteps = !isDodge && (p.overdriveRounds || 0) > 0
+      ? (FRAME_STATS[p.frame]?.overdrive || 1) : 1;
+    let stoppedBy = null;
+    let pushed = null;
+    let steps = 0;
+    for (let step = 0; step < maxSteps; step++) {
+      const nx = p.x + d.x, ny = p.y + d.y;
+      if (!inBounds(room, nx, ny)) { stoppedBy = 'wall'; break; }
+      const blocker = playerAt(room, nx, ny);
       if (blocker) {
-        visuals.push({ type:'dodge', actorId:p.id, from, to:from, blocked:true, dir:p.action.dir });
-        events.push(`${p.name}'s dodge was blocked by ${blocker.name}.`);
+        if (isDodge) { stoppedBy = blocker.name; break; }
+        const bx = blocker.x + d.x, by = blocker.y + d.y;
+        if (inBounds(room, bx, by) && !playerAt(room, bx, by)) {
+          const pushedFrom = { x: blocker.x, y: blocker.y };
+          blocker.x = bx; blocker.y = by;
+          p.x = nx; p.y = ny;
+          steps++;
+          pushed = { pushedId: blocker.id, pushedFrom, pushedTo: { x: bx, y: by } };
+        } else stoppedBy = blocker.name;
+        break;
+      }
+      p.x = nx; p.y = ny;
+      steps++;
+    }
+    const to = { x: p.x, y: p.y };
+    if (isDodge) {
+      if (steps === 0) {
+        visuals.push({ type: 'dodge', actorId: p.id, from, to, blocked: true, dir: p.action.dir });
+        events.push(stoppedBy === 'wall'
+          ? `${p.name}'s dodge was blocked by the arena wall.`
+          : `${p.name}'s dodge was blocked by ${stoppedBy}.`);
       } else {
-        p.x = nx; p.y = ny; p.dodging = true;
-        visuals.push({ type:'dodge', actorId:p.id, from, to:{x:nx,y:ny}, blocked:false, dir:p.action.dir });
+        p.dodging = true;
+        visuals.push({ type: 'dodge', actorId: p.id, from, to, blocked: false, dir: p.action.dir });
         events.push(`${p.name} dodged ${p.action.dir} (-1 energy).`);
       }
       continue;
     }
-    if (!blocker) {
-      p.x = nx; p.y = ny;
-      visuals.push({ type:'move', actorId:p.id, from, to:{x:nx,y:ny}, dir:p.action.dir });
-      events.push(`${p.name} moved ${p.action.dir}.`);
-      continue;
-    }
-    const bx = blocker.x + d.x, by = blocker.y + d.y;
-    if (inBounds(room, bx, by) && !playerAt(room, bx, by)) {
-      const pushedFrom = {x:blocker.x,y:blocker.y};
-      blocker.x = bx; blocker.y = by;
-      p.x = nx; p.y = ny;
-      visuals.push({ type:'move', actorId:p.id, from, to:{x:nx,y:ny}, dir:p.action.dir, pushedId:blocker.id, pushedFrom, pushedTo:{x:bx,y:by} });
-      events.push(`${p.name} rammed ${blocker.name}.`);
-    } else {
-      visuals.push({ type:'move', actorId:p.id, from, to:from, blocked:true, dir:p.action.dir });
-      events.push(`${p.name} couldn't push ${blocker.name}.`);
-    }
+    visuals.push({ type: 'move', actorId: p.id, from, to, blocked: steps === 0,
+      dir: p.action.dir, ...(pushed || {}), steps });
+    if (pushed) events.push(`${p.name} rammed ${room.players.find(q => q.id === pushed.pushedId)?.name || 'a machine'}.`);
+    else if (steps > 0) {
+      const distance = steps > 1 ? ` ${steps} squares` : '';
+      events.push(`${p.name} moved ${p.action.dir}${distance}${stoppedBy ? ' (stopped short)' : ''}.`);
+    } else if (stoppedBy === 'wall') events.push(`${p.name} hit the arena wall.`);
+    else events.push(`${p.name} couldn't push ${stoppedBy}.`);
   }
 
   // 5. Blasts.
@@ -337,12 +376,12 @@ export function resolveRound(room) {
       x += d.x; y += d.y;
     }
     if (!target) {
-      visuals.push({ type:'blast', actorId:p.id, from, dir:p.action.dir, path, targetId:null, blocked:false, hit:false, damage:0 });
+      visuals.push({ type:'blast', actorId:p.id, from, dir:p.action.dir, path, targetId:null, blocked:false, hit:false, damage:0, overdriveBoosted:p.frame==='phoenix' && p.overdriveRounds>0 });
       events.push(`${p.name} fired into empty space.`);
       continue;
     }
     if (target.shielded) {
-      visuals.push({ type:'blast', actorId:p.id, from, dir:p.action.dir, path, targetId:target.id, blocked:true, hit:true, damage:0 });
+      visuals.push({ type:'blast', actorId:p.id, from, dir:p.action.dir, path, targetId:target.id, blocked:true, hit:true, damage:0, overdriveBoosted:p.frame==='phoenix' && p.overdriveRounds>0 });
       events.push(`${target.name} blocked ${p.name}'s blast.`);
     } else {
       const armorAdjusted = blastDamage(p, target);
@@ -352,19 +391,31 @@ export function resolveRound(room) {
       const damage = Math.max(0, Math.round(armorAdjusted * (1 - reduction / 100)));
       target.hp = Math.max(0, target.hp - damage);
       p.damageDealt += damage;
-      visuals.push({ type:'blast', actorId:p.id, from, dir:p.action.dir, path, targetId:target.id, blocked:false, hit:true, damage, eliminated:target.hp <= 0 });
-      events.push(`${p.name} blasted ${target.name} (-${damage} HP${target.dodging ? `; ${reduction}% dodge reduction` : ''}).`);
+      visuals.push({ type:'blast', actorId:p.id, from, dir:p.action.dir, path, targetId:target.id, blocked:false, hit:true, damage, overdriveBoosted:p.frame==='phoenix' && p.overdriveRounds>0, eliminated:target.hp <= 0 });
+      events.push(`${p.name} blasted ${target.name} (-${damage} HP${p.frame==='phoenix' && p.overdriveRounds>0 ? '; OVERDRIVE RIFLE' : ''}${target.dodging ? `; ${reduction}% dodge reduction` : ''}).`);
       if (target.hp <= 0 && target.alive) {
         target.alive = false;
+        target.overdriveRounds = 0;
         p.eliminations += 1;
         events.push(`${target.name} HAS BEEN DECOMPILED.`);
       }
     }
   }
 
+  // Expire one active round only after it has had a complete turn to run.
+  // A new activation retains all 3 rounds until the next resolution.
+  for (const p of alive) {
+    if (!p.alive || !(p.overdriveRounds > 0) || activatedOverdrive.has(p.id)) continue;
+    p.overdriveRounds -= 1;
+    if (p.overdriveRounds === 0) {
+      visuals.push({type:'overdrive-end', actorId:p.id, at:{x:p.x,y:p.y}});
+      events.push(`${p.name}'s Overdrive ended.`);
+    }
+  }
+
   for (const a of revealedActions) {
     const p = room.players.find(x => x.id === a.id);
-    a.after = p ? { x:p.x, y:p.y, hp:p.hp, energy:p.energy, alive:p.alive } : null;
+    a.after = p ? { x:p.x, y:p.y, hp:p.hp, energy:p.energy, overdriveRounds:p.overdriveRounds || 0, alive:p.alive } : null;
   }
 
   const survivors = room.players.filter(p => p.alive);
@@ -420,6 +471,7 @@ export function returnToLobby(room, requesterId) {
     p.action = null;
     p.hp = FRAME_STATS[p.frame]?.hp ?? 0;
     p.energy = 1;
+    p.overdriveRounds = 0;
     p.alive = true;
     p.shielded = false;
     p.dodging = false;

@@ -166,3 +166,24 @@
 @keyframes hackInterference{0%,14%{opacity:0;transform:scale(.75) skew(8deg)}22%,34%,56%,75%{opacity:.9}28%,45%,66%,100%{opacity:0;transform:scale(1.18) skew(-5deg)}}
 @keyframes hackZap{0%{opacity:0;transform:scaleX(0)}12%{opacity:1}75%{opacity:1;transform:scaleX(1)}100%{opacity:0;transform:scaleX(1)}}
 @media(prefers-reduced-motion:reduce){.ability-fx-layer{display:none}}
+
+/* Step 11b — Frame-specific Overdrive effects and active abilities. */
+.actions .action[data-action="overdrive"]{grid-column:1/-1;justify-content:center;border-color:#be954858}
+.actions .action[data-action="overdrive"].selected{border-color:#ffd37a;background:linear-gradient(125deg,#342917,#2b1f35)}
+.actions .action[data-action="overdrive"]:disabled{opacity:.46}
+.pilot-overdrive{padding:3px 7px;border-radius:7px;border:1px solid var(--fc);color:var(--fc);background:color-mix(in srgb,var(--fc) 16%,#12192a);text-shadow:0 0 6px var(--fc);white-space:nowrap;font-size:11px}
+.bot.overdrive-active .sprite-token{filter:drop-shadow(0 0 9px var(--fc)) drop-shadow(0 0 5px var(--fc))}
+.bot.overdrive-active .bot-frame-label{color:var(--fc);text-shadow:0 0 6px var(--fc)}
+.bot-overdrive-badge{position:absolute;right:0;top:0;z-index:8;border:1px solid var(--fc);border-radius:5px;background:color-mix(in srgb,var(--fc) 14%,#091226);color:var(--fc);text-shadow:0 0 5px var(--fc);padding:1px 4px;font-size:9px;font-weight:900;pointer-events:none}
+.ability-overdrive .overdrive-burst{position:absolute;left:0;top:0;display:block;width:100%;height:100%;border:4px solid var(--ability-color);border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--ability-color) 72%,transparent) 0%,color-mix(in srgb,var(--ability-color) 30%,transparent) 28%,transparent 66%);box-shadow:0 0 26px var(--ability-color),inset 0 0 18px var(--ability-color);animation:overdriveIgnite 1.35s ease-out both;animation-delay:calc(450ms + var(--fx-age));filter:drop-shadow(0 0 6px var(--ability-color))}
+.ability-overdrive.end .overdrive-burst{border-color:#9b7b75;box-shadow:0 0 10px #a48791;animation:overdriveEnd 1.1s ease-out both}
+.ability-overdrive .ability-status{color:var(--ability-color);border-color:var(--ability-color);background:#0a142be8;text-shadow:0 0 6px var(--ability-color);animation-delay:calc(580ms + var(--fx-age))}
+.ability-overdrive.end .ability-status{color:#c8b7b7;border-color:#ba9696}
+@keyframes overdriveIgnite{0%{opacity:0;transform:translate(-50%,-50%) scale(.1)}24%{opacity:1;transform:translate(-50%,-50%) scale(1.4)}70%{opacity:1;transform:translate(-50%,-50%) scale(1.15)}100%{opacity:0;transform:translate(-50%,-50%) scale(1.8)}}
+@keyframes overdriveEnd{0%{opacity:1;transform:translate(-50%,-50%) scale(1.15)}100%{opacity:0;transform:translate(-50%,-50%) scale(.2)}}
+@media(prefers-reduced-motion:reduce){.ability-overdrive .overdrive-burst{animation:none;opacity:.7;transform:translate(-50%,-50%) scale(1)}}
+
+/* Overdrive Phoenix Rifle has a hotter, thicker core than its already-heavy base shot. */
+.combat-shot.phoenix-overdrive .blast-flight .beam-core{height:9px;top:-4px;background:#fff8e6;box-shadow:0 0 10px #fff,0 0 18px #ff473e,0 0 30px #ff291a}
+.combat-shot.phoenix-overdrive .phoenix-muzzle{filter:drop-shadow(0 0 10px #ff3222) brightness(1.25)}
+.combat-shot.phoenix-overdrive .blast-impact{filter:drop-shadow(0 0 13px #ff3222) brightness(1.3)}
