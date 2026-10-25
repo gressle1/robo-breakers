@@ -133,3 +133,36 @@
 .tile.fx-rammed .bot.mini-figure{animation-duration:.53s;animation-delay:calc(540ms + var(--fx-age))}
 @keyframes chibiArrive{0%,99%{opacity:0}100%{opacity:1}}
 @media(prefers-reduced-motion:reduce){.tile.fx-move .bot.mini-figure,.tile.fx-dodge .bot.mini-figure,.tile.fx-rammed .bot.mini-figure{animation:none}}
+
+
+/* Step 10: tactical Shield, Hack and Overcharge feedback. Authoritative visuals only.
+   These effects are overlays, so arena grid cells retain equal heights and widths. */
+.ability-fx-layer{position:absolute;inset:0;z-index:9;pointer-events:none;overflow:hidden;isolation:isolate}
+.ability-unit{position:absolute;left:var(--fx-x);top:var(--fx-y);width:calc(85% / var(--board-size));height:calc(85% / var(--board-size));transform:translate(-50%,-50%);pointer-events:none;--ability-color:#62d9ff}
+.ability-unit span{position:absolute;pointer-events:none}
+.ability-status{z-index:3;left:50%;top:-18%;padding:2px 4px;min-width:max-content;color:#d8f7ff;background:#081226eb;border:1px solid currentColor;border-radius:4px;font:900 clamp(.43rem,.78vw,.63rem) 'Chakra Petch',sans-serif;letter-spacing:.06em;text-shadow:0 1px 4px #000;transform:translate(-50%,-50%);opacity:0;animation:abilityLabel .86s ease both;animation-delay:calc(750ms + var(--fx-age))}
+.ability-shield .ability-shield-shell{inset:4%;border-radius:50%;border:2px solid #75f4ff;background:radial-gradient(circle at 35% 30%,#ecfcff65,#49d1fa25 52%,#2a98ef18 70%,transparent 83%);box-shadow:0 0 10px 3px #54dfff88,inset 0 0 20px #53c9ff99;transform:scale(.3);opacity:0;animation:shieldDeploy 1.02s ease-out both;animation-delay:calc(650ms + var(--fx-age))}
+.ability-shield .ability-shield-hex{inset:-6%;border-radius:20%;border:2px dashed #b3f6ff9c;box-shadow:inset 0 0 15px #44d7ff55;transform:rotate(0deg) scale(.4);opacity:0;animation:shieldHex 1.04s ease-out both;animation-delay:calc(690ms + var(--fx-age))}
+.ability-shield .ability-status{color:#95eeff}
+.ability-shield.disabled .ability-shield-shell{border-color:#ff5a8f;background:radial-gradient(circle,#ff4b792c,transparent 65%);box-shadow:0 0 12px #ff577a66;animation:shieldDisrupted .95s steps(3,end) both;animation-delay:calc(690ms + var(--fx-age))}
+.ability-shield.disabled .ability-shield-hex{border-color:#ff6c9e;animation:shieldDisrupted .95s steps(3,end) both;animation-delay:calc(690ms + var(--fx-age))}
+.ability-shield.disabled .ability-status{color:#ff90ba}
+.ability-overcharge .ability-core{inset:24%;border-radius:50%;background:radial-gradient(circle,#fff8dd,#ffd166 28%,#ff9d2e8a 54%,transparent 75%);box-shadow:0 0 13px #ffd166,0 0 23px #ffbd4d9c;transform:scale(.1);opacity:0;animation:corePulse 1.05s ease-out both;animation-delay:calc(790ms + var(--fx-age))}
+.ability-overcharge .ability-surge{inset:0;border-radius:50%;border:3px solid #ffdf88;box-shadow:0 0 22px #ffd16699,inset 0 0 16px #ffb3359a;transform:scale(.25);opacity:0;animation:overchargeWave 1.05s ease-out both;animation-delay:calc(800ms + var(--fx-age))}
+.ability-overcharge .ability-status{color:#ffe49b;animation-delay:calc(870ms + var(--fx-age))}
+.ability-hack .ability-hack-glitch{inset:4%;border:2px solid #ca96ff;border-radius:12%;background:repeating-linear-gradient(0deg,#b58cff1a 0 3px,transparent 3px 7px);box-shadow:0 0 17px #b58cff88;opacity:0;animation:hackInterference .96s steps(5,end) both;animation-delay:calc(580ms + var(--fx-age))}
+.ability-hack .ability-hack-cross{left:50%;top:50%;color:#f4b9ff;font:900 clamp(1.25rem,2.7vw,2.6rem) 'Chakra Petch',sans-serif;filter:drop-shadow(0 0 10px #a65bff);transform:translate(-50%,-50%);opacity:0;animation:hackInterference .95s steps(4,end) both;animation-delay:calc(650ms + var(--fx-age))}
+.ability-hack .ability-status{color:#e4b7ff;animation-delay:calc(650ms + var(--fx-age))}
+.ability-hack.fail .ability-hack-glitch{border-color:#8993ab;background:repeating-linear-gradient(0deg,#afbdce18 0 2px,transparent 2px 6px);box-shadow:0 0 10px #75849a44}
+.ability-hack.fail .ability-status{color:#b5bfd4}
+.ability-hack-trace{position:absolute;transform-origin:left center;height:0;pointer-events:none;filter:drop-shadow(0 0 6px #b58cff)}
+.ability-hack-trace i{position:absolute;left:0;top:-2px;width:100%;height:5px;display:block;border-radius:2px;background:repeating-linear-gradient(90deg,#ffffffdd 0 8%,#b58cff 9% 16%,#5c2f9a 19% 25%);box-shadow:0 0 12px #b58cff;transform-origin:left center;transform:scaleX(0);opacity:0;animation:hackZap .62s linear both;animation-delay:calc(570ms + var(--fx-age))}
+@keyframes abilityLabel{0%{opacity:0;transform:translate(-50%,0) scale(.75)}25%,72%{opacity:1;transform:translate(-50%,-50%) scale(1)}100%{opacity:0;transform:translate(-50%,-105%) scale(.96)}}
+@keyframes shieldDeploy{0%{opacity:0;transform:scale(.2)}22%{opacity:.95;transform:scale(1.18)}55%{opacity:.7;transform:scale(1.01)}100%{opacity:0;transform:scale(1.06)}}
+@keyframes shieldHex{0%{opacity:0;transform:rotate(-25deg) scale(.4)}25%{opacity:.8;transform:rotate(0deg) scale(1.07)}100%{opacity:0;transform:rotate(22deg) scale(1.13)}}
+@keyframes shieldDisrupted{0%,18%{opacity:0;transform:scale(.4)}30%,50%,72%{opacity:.95;transform:scale(1.02)}39%,61%,100%{opacity:0;transform:scale(1.15)}}
+@keyframes corePulse{0%{opacity:0;transform:scale(.1)}26%{opacity:1;transform:scale(1.4)}55%{opacity:.9;transform:scale(.8)}100%{opacity:0;transform:scale(1.6)}}
+@keyframes overchargeWave{0%{opacity:0;transform:scale(.1)}20%{opacity:1}100%{opacity:0;transform:scale(1.65)}}
+@keyframes hackInterference{0%,14%{opacity:0;transform:scale(.75) skew(8deg)}22%,34%,56%,75%{opacity:.9}28%,45%,66%,100%{opacity:0;transform:scale(1.18) skew(-5deg)}}
+@keyframes hackZap{0%{opacity:0;transform:scaleX(0)}12%{opacity:1}75%{opacity:1;transform:scaleX(1)}100%{opacity:0;transform:scaleX(1)}}
+@media(prefers-reduced-motion:reduce){.ability-fx-layer{display:none}}
