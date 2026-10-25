@@ -1,7 +1,7 @@
 export const FRAME_STATS = Object.freeze({
   juggernaut: Object.freeze({ hp: 150, armor: 20, blast: 18, melee: 24, dodge: 25, move: 1, overdrive: 1 }),
   phoenix: Object.freeze({ hp: 110, armor: 5, blast: 28, melee: 30, dodge: 40, move: 1, overdrive: 1 }),
-  astra: Object.freeze({ hp: 100, armor: 0, blast: 18, melee: 12, dodge: 60, move: 1, overdrive: 2 }),
+  astra: Object.freeze({ hp: 100, armor: 0, blast: 18, melee: 12, dodge: 60, move: 1, overdrive: 3 }),
   aurora: Object.freeze({ hp: 120, armor: 10, blast: 20, melee: 18, dodge: 45, move: 1, overdrive: 2 }),
 });
 export const FRAMES = Object.freeze(Object.keys(FRAME_STATS));
@@ -303,7 +303,7 @@ export function resolveRound(room) {
   }
 
   // 4. Movement and directional Dodge resolve sequentially in player order.
-  // Only Astra gets a two-square MOVE while Overdrive is active. Intermediate
+  // Astra can MOVE 3 and Aurora 2 squares per active Overdrive turn. Intermediate
   // squares are checked to prevent jumping through walls or other machines.
   // A ram can push one adjacent blocker, then ends the move for this command.
   // Dodge remains a one-square action costing one energy, even when blocked.

@@ -25,20 +25,20 @@ function frontend() {
   return c.UI;
 }
 
-test('Astra uses exactly 2 spaces during Overdrive and 1 when inactive',()=>{
+test('Astra uses exactly 3 spaces during Overdrive and 1 when inactive',()=>{
   const r=game();
-  turn(r,{type:'move',dir:'right'}); assert.equal(r.players[0].x,2);
-  activate(r);
   turn(r,{type:'move',dir:'left'}); assert.equal(r.players[0].x,0);
+  activate(r);
+  turn(r,{type:'move',dir:'right'}); assert.equal(r.players[0].x,3);
   assert.equal(r.players[0].overdriveRounds,2);
-  assert.equal(r.lastTurn.visuals.find(v=>v.type==='move').steps,2);
-  assert.match(r.lastTurn.events.join(' '),/moved left 2 squares/);
+  assert.equal(r.lastTurn.visuals.find(v=>v.type==='move').steps,3);
+  assert.match(r.lastTurn.events.join(' '),/moved right 3 squares/);
   for (let i=0;i<2;i++)turn(r,{type:'shield'});
   assert.equal(r.players[0].overdriveRounds,0);
-  turn(r,{type:'move',dir:'right'});assert.equal(r.players[0].x,1);
+  turn(r,{type:'move',dir:'right'});assert.equal(r.players[0].x,4);
 });
 
-test('Astra never crosses the board boundary: a two-step move can stop after one cell',()=>{
+test('Astra never crosses the board boundary: a three-step move can stop after one cell',()=>{
   const r=game();r.players[0].x=3;r.players[0].y=0;activate(r);
   turn(r,{type:'move',dir:'right'});
   assert.equal(r.players[0].x,4);

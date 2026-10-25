@@ -2,7 +2,7 @@ const app=document.querySelector('#app');
 const ACTION_META={move:['MOVE','↗','Reposition or ram a bot'],blast:['BLAST','✦','Fire until a bot or wall'],shield:['SHIELD','⬡','Block one incoming blast'],hack:['HACK','⌁','Disable an adjacent shield'],overcharge:['OVERCHARGE','ϟ','Gain +1 energy'],dodge:['DODGE','↝','Spend 1 energy; evade 1 square'],overdrive:['OVERDRIVE','✧','Activate for 3 energy; lasts 3 rounds']};
 const DIR_ICON={up:'↑',down:'↓',left:'←',right:'→'};
 const DIR_VEC={up:{x:0,y:-1},down:{x:0,y:1},left:{x:-1,y:0},right:{x:1,y:0}};
-const FRAMES=[{id:'juggernaut',name:'Juggernaut',role:'Heavy',color:'#50AE72',hp:150,armor:20,blast:18,melee:24,dodge:25,move:1,overdrive:1},{id:'phoenix',name:'Phoenix',role:'Striker',color:'#EE5A63',hp:110,armor:5,blast:28,melee:30,dodge:40,move:1,overdrive:1},{id:'astra',name:'Astra',role:'Scout',color:'#48B7FF',hp:100,armor:0,blast:18,melee:12,dodge:60,move:1,overdrive:2},{id:'aurora',name:'Aurora',role:'Vanguard',color:'#FF9C47',hp:120,armor:10,blast:20,melee:18,dodge:45,move:1,overdrive:2}];
+const FRAMES=[{id:'juggernaut',name:'Juggernaut',role:'Heavy',color:'#50AE72',hp:150,armor:20,blast:18,melee:24,dodge:25,move:1,overdrive:1},{id:'phoenix',name:'Phoenix',role:'Striker',color:'#EE5A63',hp:110,armor:5,blast:28,melee:30,dodge:40,move:1,overdrive:1},{id:'astra',name:'Astra',role:'Scout',color:'#48B7FF',hp:100,armor:0,blast:18,melee:12,dodge:60,move:1,overdrive:3},{id:'aurora',name:'Aurora',role:'Vanguard',color:'#FF9C47',hp:120,armor:10,blast:20,melee:18,dodge:45,move:1,overdrive:2}];
 // Artwork is cropped only from the user's approved Robo Breakers frame sheets.
 // The player outline palette remains separate from each frame's signature color.
 const FRAME_ART_BASE='/assets/frames/';
