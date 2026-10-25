@@ -67,13 +67,13 @@ test('cannot activate again during Overdrive, even when energy replenishes',()=>
   turn(r,{type:'overdrive'});
   assert.equal(r.players[0].energy,0);assert.equal(r.players[0].overdriveRounds,3);
 });
-test('Overdrive activation does not apply frame-specific stat buffs yet',()=>{
+test('Overdrive grants a stronger Phoenix rifle while Phoenix movement remains one square',()=>{
   const r=setup('phoenix');charge(r);turn(r,{type:'overdrive'});
   r.players[0].x=0;r.players[0].y=0;r.players[1].x=0;r.players[1].y=3;
   turn(r,{type:'move',dir:'down'});
   assert.equal(r.players[0].y,1); // phoenix still moves one square
   turn(r,{type:'blast',dir:'down'},{type:'overcharge'});
-  assert.equal(r.players[1].hp,FRAME_STATS.juggernaut.hp-22); // 28 blast, 20% armor
+  assert.equal(r.players[1].hp,FRAME_STATS.juggernaut.hp-28); // 35 boosted blast, 20% armor
 });
 test('rematch and returning to lobby clear Overdrive, while new matches start empty',()=>{
   const r=setup();charge(r);turn(r,{type:'overdrive'});
