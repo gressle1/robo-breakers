@@ -337,12 +337,12 @@ export function resolveRound(room) {
       x += d.x; y += d.y;
     }
     if (!target) {
-      visuals.push({ type:'blast', actorId:p.id, from, dir:p.action.dir, path, targetId:null, blocked:false, hit:false });
+      visuals.push({ type:'blast', actorId:p.id, from, dir:p.action.dir, path, targetId:null, blocked:false, hit:false, damage:0 });
       events.push(`${p.name} fired into empty space.`);
       continue;
     }
     if (target.shielded) {
-      visuals.push({ type:'blast', actorId:p.id, from, dir:p.action.dir, path, targetId:target.id, blocked:true, hit:true });
+      visuals.push({ type:'blast', actorId:p.id, from, dir:p.action.dir, path, targetId:target.id, blocked:true, hit:true, damage:0 });
       events.push(`${target.name} blocked ${p.name}'s blast.`);
     } else {
       const armorAdjusted = blastDamage(p, target);
@@ -352,7 +352,7 @@ export function resolveRound(room) {
       const damage = Math.max(0, Math.round(armorAdjusted * (1 - reduction / 100)));
       target.hp = Math.max(0, target.hp - damage);
       p.damageDealt += damage;
-      visuals.push({ type:'blast', actorId:p.id, from, dir:p.action.dir, path, targetId:target.id, blocked:false, hit:true, eliminated:target.hp <= 0 });
+      visuals.push({ type:'blast', actorId:p.id, from, dir:p.action.dir, path, targetId:target.id, blocked:false, hit:true, damage, eliminated:target.hp <= 0 });
       events.push(`${p.name} blasted ${target.name} (-${damage} HP${target.dodging ? `; ${reduction}% dodge reduction` : ''}).`);
       if (target.hp <= 0 && target.alive) {
         target.alive = false;
