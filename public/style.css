@@ -69,3 +69,20 @@
 .bot.mini-figure .hpbar{bottom:2%;}
 @media(max-width:900px){.board{width:min(100%,72vh);margin-inline:auto;max-height:none;}}
 @media(max-width:480px){.board{width:100%;}}
+
+/* Combat visual polish: deterministic multiplayer Blast playback (display only). */
+.blast-fx-layer{position:absolute;inset:0;z-index:12;overflow:hidden;pointer-events:none;isolation:isolate}
+.combat-shot{position:absolute;inset:0;--shot-color:#62d9ff}
+.blast-flight{position:absolute;height:0;transform-origin:left center;filter:drop-shadow(0 0 5px var(--shot-color))}
+.blast-flight:before{content:"";position:absolute;left:0;top:-1px;width:100%;height:3px;background:linear-gradient(90deg,transparent,var(--shot-color),#fff);transform-origin:left;animation:blastTrace .42s linear both;animation-delay:calc(700ms + var(--fx-age))}
+.blast-bolt{position:absolute;left:0;top:0;width:clamp(9px,1.8vw,19px);height:5px;border-radius:99px;background:#fff;box-shadow:0 0 5px 2px #fff,0 0 12px 5px var(--shot-color);transform:translate(-50%,-50%);animation:blastTravel .42s linear both;animation-delay:calc(700ms + var(--fx-age))}
+.blast-impact{position:absolute;width:32%;height:32%;max-width:68px;max-height:68px;border-radius:50%;border:3px solid var(--shot-color);background:radial-gradient(circle,#fff9,var(--shot-color) 32%,transparent 70%);box-shadow:0 0 22px var(--shot-color),inset 0 0 10px #fff6;transform:translate(-50%,-50%) scale(0);animation:blastImpact .55s ease-out both;animation-delay:calc(1120ms + var(--fx-age))}
+.blast-impact.blocked{border-color:#73e9ff;background:radial-gradient(circle,#dfffffcc,#47a6f388,transparent 72%);box-shadow:0 0 22px #63d9ff}
+.blast-impact.miss{width:13%;height:13%;border-color:#9ab2c8;opacity:.5}
+.blast-damage{position:absolute;z-index:3;min-width:4em;padding:2px 5px;border-radius:5px;background:#070e1de0;border:1px solid #ffbc81;color:#ffe4b0;font:900 clamp(.57rem,1.3vw,.85rem) 'Chakra Petch',sans-serif;letter-spacing:.04em;text-align:center;white-space:nowrap;text-shadow:0 1px 5px #000;transform:translate(-50%,-50%);animation:blastDamageRise 1.05s ease-out both;animation-delay:calc(1140ms + var(--fx-age))}
+.blast-damage.blocked{color:#a6edff;border-color:#63d9ff}.blast-damage.miss{color:#a9bdd0;border-color:#64758d}
+@keyframes blastTrace{0%{transform:scaleX(0);opacity:0}15%{opacity:1}95%{opacity:1}100%{transform:scaleX(1);opacity:0}}
+@keyframes blastTravel{0%{left:0;opacity:0}10%{opacity:1}85%{opacity:1}100%{left:100%;opacity:0}}
+@keyframes blastImpact{0%{opacity:0;transform:translate(-50%,-50%) scale(.2)}30%{opacity:1;transform:translate(-50%,-50%) scale(1)}100%{opacity:0;transform:translate(-50%,-50%) scale(1.65)}}
+@keyframes blastDamageRise{0%{opacity:0;transform:translate(-50%,-25%) scale(.7)}20%{opacity:1;transform:translate(-50%,-100%) scale(1.05)}80%{opacity:1}100%{opacity:0;transform:translate(-50%,-170%) scale(1)}}
+@media(prefers-reduced-motion:reduce){.blast-fx-layer{display:none}}
